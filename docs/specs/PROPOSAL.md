@@ -483,13 +483,33 @@ Swift：v1 僅使用 Apple 系統框架。
 
 ## 15. 待驗證事項（實作前先做 spike，結論回填此處）
 
-- V1：SpeechAnalyzer / SFSpeechRecognizer 在 zh-TW 與中英夾雜的品質和 on-device 支援度。結論：____
+- V1：SpeechAnalyzer / SFSpeechRecognizer 在 zh-TW 與中英夾雜的品質和 on-device 支援度。結論：初步結論如下，仍待實機驗證（v0.4 文件研究）
+  - 結論（初步，文件研究，2026-10-24）：SpeechTranscriber（OS 26+）全程 on-device，模型由系統以 AssetInventory 下載（OS 負責、不帶 key，不違反 INV-7）；官方未列語言清單，zh-TW 只有間接證據（apple.com/ios/feature-availability 的 Mandarin (Taiwan)），而系統 on-device 聽寫只列中國大陸，SFSpeechRecognizer 的 zh-TW on-device 可能不支援。中英夾雜品質查無公開評測。
+  - 建議：Apple 端預設 WhisperEngine，SpeechTranscriber 為可選引擎；SFSpeechRecognizer 只在 `supportsOnDeviceRecognition` 為 true 時以 `requiresOnDeviceRecognition = true` 使用。
+  - 依據：developer.apple.com/documentation/speech/speechtranscriber、WWDC25 session 277、Apple 論壇 802969（Simulator 回空）/ 797835。
+  - 待實機（M2）：`supportedLocales` 是否含 zh-TW、繁簡與標點、與 whisper 同語料的 CER/WER、延遲、`AnalysisContext` 詞彙表。
 - V2：macOS App Sandbox 開啟時，AX 插入和 CGEvent 貼上是否可用。結論：____
-- V3：iOS 鍵盤 session 模式（background audio + Darwin notification + App Group）是否符合 App Review。結論：____
+- V3：iOS 鍵盤 session 模式（background audio + Darwin notification + App Group）是否符合 App Review。結論：初步結論如下，仍待實機驗證（v0.4 文件研究）
+  - 結論（初步，文件研究，2026-10-24）：可行但審核風險中高。Guidelines 4.4.1 要求鍵盤在無 Full Access 時仍可用、禁止啟動 Settings 以外的 App；2.5.4 的 `audio` 背景模式字面上是播放用途；2.5.14 要求可見錄音指示；5.1.2(i) 要揭露送往第三方 AI。Wispr Flow 已上架同類「session」形態（二手資料）。
+  - 建議：使用者先在主 App 手動開 session，鍵盤只送 Darwin notification、不 `open` 主 App；無 Full Access 時退化為基本輸入；session 有可見指示、預設短時自動結束；App Group 結果讀後即刪（INV-5）。
+  - 依據：developer.apple.com/app-store/review/guidelines（4.4.1、2.5.4、2.5.14、5.1.1、5.1.2）、Configuring open access for a custom keyboard、Apple 論壇 843118 / 800500。
+  - 待實機（M4b）：背景錄音在鎖定 / 來電後的行為、鍵盤記憶體上限、TestFlight 審核探路；建議向 App Review 預先詢問（人工）。
 - V4：Anthropic API 目前的模型 ID、anthropic-version 標頭、/v1/models 端點、workspace 與 spend limit 功能。結論：____
-- V5：Windows 原生 key 輸入對話框的實作方式（CredUI 或自製）。結論：____
-- V6：security-framework crate 能否設定 ThisDeviceOnly 和 SecAccessControl。若不行，改由 Swift 端寫入 Keychain，但仍由 Rust 讀取。結論：____
-- V7：OpenCC 的 Rust 實作選項與依賴成本。結論：____
+- V5：Windows 原生 key 輸入對話框的實作方式（CredUI 或自製）。結論：初步結論如下，仍待實機驗證（v0.4 文件研究）
+  - 結論（初步，文件研究，2026-10-24）：建議自製 modal 對話框（`DialogBoxIndirectParamW` + `ES_PASSWORD` edit + `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`），單一欄位、文案可控、可排除螢幕擷取。CredUI（`CREDUIWIN_GENERIC`）無法隱藏使用者名稱欄，作為備案。兩案都需 unsafe 與緩衝區 zeroize。
+  - 需批准（M3）：在 `windows/` 單一模組放寬 `unsafe_code`；額外 `windows` features（`Win32_UI_WindowsAndMessaging`、`Win32_System_LibraryLoader`，CredUI 另需 `Win32_Graphics_Gdi`、`Win32_System_Com`）不在現有批准範圍，M3 開工時提出。
+  - 依據：learn.microsoft.com 的 CredUIPromptForWindowsCredentialsW、CredUnPackAuthenticationBufferW、DialogBoxIndirectParamW、SetWindowDisplayAffinity；windows 0.62.2 原始碼。
+  - 待實機（M3）：長 key 貼上、Tauri 父視窗 focus / DPI / Narrator、同權限行程 `WM_GETTEXT` 讀密碼欄、AV 誤報。
+- V6：security-framework crate 能否設定 ThisDeviceOnly 和 SecAccessControl。若不行，改由 Swift 端寫入 Keychain，但仍由 Rust 讀取。結論：初步結論如下，仍待實機驗證（v0.4 文件研究）
+  - 結論（初步，文件研究，2026-10-24）：可以，由 Rust 寫入（3.7.0 原始碼確認）。用 `set_access_control(SecAccessControl::create_with_protection(Some(AccessibleWhenUnlockedThisDeviceOnly), flags))`，flags 為 0 或 `USER_PRESENCE`；`set_access_synchronized(Some(false))`，get / delete / exists 也帶 `Some(false)`（`None` 是 SynchronizableAny）；不呼叫 `set_access_group`（INV-10）。
+  - 禁用 `set_access_control_options`：內部 protection=None，退回 `kSecAttrAccessibleWhenUnlocked`（非 ThisDeviceOnly），違反 INV-1。列入 code review 與 Apple-only 測試。
+  - macOS 需 data protection keychain（`use_protected_keychain()`，需 crate feature `OSX_10_15`，已批准），否則 file-based keychain 不強制上述屬性；Developer ID 可能需要 `keychain-access-groups` entitlement 與 provisioning profile（-34018）。
+  - 依據：docs.rs/security-framework/3.7.0（passwords、access_control）、TN3137。待實機（M2）：屬性讀回、-34018、iOS userPresence、更新既有項目是否保留 access control。
+- V7：OpenCC 的 Rust 實作選項與依賴成本。結論：初步結論如下，仍待實機驗證（v0.4 文件研究）
+  - 結論（初步，文件研究，2026-10-24）：v1 不引入，先靠 whisper initial prompt 與潤稿 prompt；polish / formal / translate 模式下價值很低，只有 raw 與退回 raw 時用得到。
+  - 若 US-M1-26 實測簡體比例過高，首選 `ferrous-opencc`（Apache-2.0、純 Rust、有 s2twp；但 anyhow、fst、phf、rkyv 等不在白名單，需走 D-5 批准與 cargo-vet）。`zhconv` 為 GPL-2.0-or-later 不可用；`opencc-rust` 綁 C++ OpenCC 不建議；`opencc-jieba-rs` 依賴樹最大。
+  - 依據：crates.io 各 crate 頁面與 API（2026-10-24 查詢）、github.com/apoint123/ferrous-opencc。
+  - 待實測（M1）：whisper small / large-v3-turbo 在繁中 initial prompt 下的簡體比例；若引入，量二進位增量與記憶體。
 - V8（v0.2 新增）：Windows 預設快捷鍵 Right Alt / Right Shift + Right Alt 的實作方式。已知事實：
   - RegisterHotKey（含 tauri-plugin-global-shortcut）不能註冊單獨修飾鍵，也不分左右 Alt。
   - 偵測單獨的 Right Alt 需要 WH_KEYBOARD_LL 低階鍵盤 hook，或 Raw Input（RIDEV_INPUTSINK）。§7.3 目前明文禁止低階 hook。
