@@ -10,21 +10,21 @@
 >
 > 狀態圖例：✅ 完成 ／ 🚧 進行中 ／ ⬜ 未開始 ／ ⏸ 卡住（註明等什麼）／ 🧑 需人工
 >
-> 最後更新：2026-10-24（0005 M1 地基：unsafe 範圍、依賴、共用型別與模組分工；M1 平行實作開工）
+> 最後更新：2026-10-24（[0014](../changes/0014-m1-integration.md) M1 整合：Keychain 原子取代、FFI 匯出、端到端與金絲雀）
 
 ## 進度總覽
 
 | 里程碑 | 目標 | 狀態 | 故事完成 | 卡點 |
 |--------|------|------|----------|------|
 | M0 專案骨架 | repo、CI、INV 測試骨架 | ✅ | 10 / 10（100%） | — |
-| M1 core 與 CLI | §13 M1：vault、client、polish、guard、budget、STT、downloader、CLI | 🚧 | 2 / 26（8%） | V4、D-10 uniffi |
+| M1 core 與 CLI | §13 M1：vault、client、polish、guard、budget、STT、downloader、CLI | 🚧 | 17 / 26（65%） | D-7、D-9、D-11；§15 V4 / V6 回填；M1-04/05 實機；M1-18 維護者複核 |
 | M2 macOS | menu bar app 端到端 | ⬜ | 0 / 17（0%） | M1；§16-1 Apple 帳號 |
 | M3 Windows | Tauri tray app 端到端 | ⬜ | 0 / 13（0%） | M1；D-2；§16-2 簽章 |
 | M4a iOS 主 App | 錄音 → 潤稿 → 剪貼簿、App Intent | ⬜ | 0 / 6（0%） | M2（共用 KeepsayKit）；§16-1 |
 | M4b iOS 鍵盤 | session 模式 | ⬜ | 0 / 4（0%） | M4a；V3 |
 | M5 發佈加固 | provenance、簽章、套件管道 | ⬜ | 0 / 7（0%） | §16-1/2/3/6 |
 | v1.1+ / Backlog | v1 之後 | — | 0 / 8 | 依各項 |
-| **v1 合計（M0–M5）** | | | **11 / 83（約 13%）** | |
+| **v1 合計（M0–M5）** | | | **27 / 83（約 33%）** | |
 
 ## 需求對照（FR / INV → 故事）
 
@@ -94,15 +94,26 @@
 
 ## M1 keepsay-core 與 CLI（§13 M1；DoD：§11 自動化測試全過、金絲雀通過）
 
-> 平行實作：共用型別與簽章已在 [0005](../changes/0005-m1-foundation.md) 定好，分成五個工作流，各自只改自己的檔案（檔案清單見 0005「模組分工」）。A api：M1-01、07、08 ／ B polish：M1-09–13、16 ／ C vault：M1-02、04–06、21 ／ D downloader + budget + config：M1-14、15、18、19 ／ E stt + cli：M1-16、17、23、25。M1-20、21、22 在各工作流合併後的整合階段完成。
+> 平行實作：共用型別與簽章已在 [0005](../changes/0005-m1-foundation.md) 定好，分成五個工作流，各自只改自己的檔案（檔案清單見 0005「模組分工」）。A api：M1-01、07、08 ／ B polish：M1-09–13、16 ／ C vault：M1-02、04–06、21 ／ D downloader + budget + config：M1-14、15、18、19 ／ E stt + cli：M1-16、17、23、25。五個工作流已合併，整合見 [0014](../changes/0014-m1-integration.md)。
+>
+> M1 DoD（§13）：§11 自動化測試在 Linux 上全部通過（`cargo test --workspace --all-features`：194 passed、1 ignored，ignored 的是手動執行的校正輸出），金絲雀涵蓋 vault / API / polish / 設定 / 預算 / 下載器 / FFI 路徑並通過。尚未達成：Apple / Windows vault 的實機屬性驗證（macOS 需簽章 binary；Windows 待 CI test-os job 實跑）、§15 V4 / V6 回填、D-7 / D-9 確認。
+>
+> M1 剩餘人工事項（🧑）：
+> - D-7 翻譯守門門檻、D-9 light / formal prompt 的確認（US-M1-09、12）。
+> - D-11 `uniffi/tokio`、D-12 Swift binding 產生器與 crate-type（US-M1-22、M2-04）。
+> - 維護者在自己的機器重算三個模型的 SHA-256（US-M1-18，方法見 [0009](../changes/0009-models-budget-config.md)）。
+> - §16-4：建立開發用 Anthropic workspace 與 key，順便確認撤銷 key、關閉自動儲值的 Console 位置（US-M1-01）。
+> - §16-1：簽章 binary 與 `keychain-access-groups` entitlement，才能實測 Keychain 屬性與取代流程在 userPresence 下的提示（US-M1-04、M2）。
+> - §16-5：商標與 GitHub 同名確認須在 M1 結束前完成（vault 識別字一旦有使用者資料就要遷移）。
+> - 是否改寫 `core/tests/api_errors.rs` 以值比對假 key 的 header matcher（見 0014 Consequences）。
 
 **US-M1-01** 身為維護者，我想要完成 V4 spike（模型 ID、`anthropic-version`、`/v1/models`、workspace 與 spend limit），以便 client 與 onboarding 用的是現行事實。
 - 驗收：① §15 V4 回填結論與官方文件連結 ② `MODEL_ALLOWLIST` / `DEFAULT_MODEL` 依結論更新 ③ §12 onboarding 文字依 Console 現況修正
-- 狀態：🚧 工作流 A ｜ 相依：§16-4 ｜ ② 完成；結論在 [0006](../changes/0006-v4-api-facts.md)（`claude-haiku-5-5`、`anthropic-version: 2026-10-21`），① §15 回填與 ③ §12 修正待整合階段套用
+- 狀態：🚧 ｜ 相依：§16-4 ｜ ② 完成；結論在 [0006](../changes/0006-v4-api-facts.md)（`claude-haiku-5-5`、`anthropic-version: 2026-10-21`）；① §15 回填與 ③ §12 修正由 docs 整合者套用中；撤銷 key 與關閉自動儲值的 Console 位置待 🧑 §16-4 確認
 
 **US-M1-02** 身為維護者，我想要完成 V6 spike（security-framework 能否設 ThisDeviceOnly 與 SecAccessControl），以便決定 Apple vault 由 Rust 或 Swift 寫入。
 - 驗收：① §15 V6 回填 ② 若不可行，在 0005+ 記錄改由 Swift 寫入、Rust 讀取的方案
-- 狀態：🚧 工作流 C ｜ 相依：— ｜ 結論見 [0008](../changes/0008-vault.md)（可由 Rust 寫入；禁用 `set_access_control_options`），待整合階段搬入 §15；實機驗證屬 M2
+- 狀態：🚧 ｜ 相依：— ｜ 結論見 [0008](../changes/0008-vault.md)（可由 Rust 寫入；禁用 `set_access_control_options`）與 [0014](../changes/0014-m1-integration.md)（取代 key 三步驟）；§15 V6 回填由 docs 整合者套用中；實機驗證屬 M2
 
 **US-M1-03** 身為安全稽核者，我想要 Win32 FFI 需要的 `unsafe` 有明確範圍，以便 Windows vault 能實作又不放寬整個 workspace。
 - 驗收：① docs/changes 記錄決策（例如只在 `core/src/vault/windows.rs` 以 `#[allow(unsafe_code)]` 開放，或改用安全封裝）② CLAUDE.md Code style 同步
@@ -110,27 +121,27 @@
 
 **US-M1-04** 身為使用者，我想要 key 存進 Keychain（ThisDeviceOnly、不同步、service `dev.rightson.keepsay.apikey`），以便 key 不落地明文、不進 iCloud（INV-1）。
 - 驗收：① `vault/apple.rs` 實作 `KeyVault` ② 屬性由 macOS 上的整合測試驗證 ③ 不設共享 access group（INV-10 前置）
-- 狀態：🚧 工作流 C ｜ 相依：US-M1-02 ｜ 實作完成（[0008](../changes/0008-vault.md)）；`core/tests/vault_platform.rs` 在 macOS CI 只能驗證未簽章時乾淨回 `Unsupported`，完整屬性驗證待簽章 binary（M2）
+- 狀態：🚧 🧑 ｜ 相依：US-M1-02、§16-1 ｜ ① ③ 完成（[0008](../changes/0008-vault.md)；取代 key 改為 pending → 刪舊 → 改名，失敗不丟舊 key，[0014](../changes/0014-m1-integration.md)）。② `core/tests/vault_platform.rs` 在未簽章的 macOS CI 只能驗證乾淨回 `VaultNotEntitled`、無殘留；屬性實測需簽章 binary（M2）
 
 **US-M1-05** 身為使用者，我想要 Windows 上 key 存進 Credential Manager（GENERIC、LOCAL_MACHINE），以便 key 不隨漫遊設定檔同步（INV-1）。
 - 驗收：① `vault/windows.rs` 實作 `KeyVault`，target 依 D-6 定名 ② CredFree 前覆寫 buffer ③ Windows CI runner 上跑整合測試
-- 狀態：🚧 工作流 C ｜ 相依：US-M1-03 ✅、D-6 ✅ ｜ 實作完成（[0008](../changes/0008-vault.md)），交叉編譯 clippy 通過；待 Windows CI 實跑 `core/tests/vault_platform.rs`
+- 狀態：🚧 ｜ 相依：US-M1-03 ✅、D-6 ✅ ｜ ① ② 完成（[0008](../changes/0008-vault.md)；`CredWriteW` 單次覆寫，取代 key 沒有空窗，[0014](../changes/0014-m1-integration.md)），交叉編譯 clippy 通過；③ 待 CI test-os（windows-latest）實跑 `core/tests/vault_platform.rs`
 
 **US-M1-06** 身為使用者，我想要 store / has / fingerprint / delete / verify 的 key 生命週期，以便驗證失敗的 key 不會被存下（FR-1）。
 - 驗收：① 格式檢查 → `GET /v1/models` → 存入，失敗不存 ② 401/403 回 `KeyInvalid` 且不自動刪除 ③ 只回 `vault::fingerprint`（INV-2）④ 預設不快取，用完 drop（§6.2）
-- 狀態：🚧 工作流 C ｜ 相依：US-M1-04/05、US-M1-07 ｜ vault 端完成：`vault::store_key(vault, key, verify)` 等（[0008](../changes/0008-vault.md)）；待 FFI（US-M1-22）以 `AnthropicClient::verify_key` 接上
+- 狀態：✅ ｜ 相依：US-M1-04/05、US-M1-07 ｜ `vault::store_key` 經 FFI `store_key` 與 CLI `key set` 以 `AnthropicClient::verify_key` 接上；`stored_fingerprint`、`verify_stored_key` 讓 vault 與 client 以外不必 `load`（`core/tests/no_key_load.rs`、`ffi_flow.rs`，[0014](../changes/0014-m1-integration.md)）
 
 **US-M1-07** 身為安全稽核者，我想要 `AnthropicClient` 以 reqwest + rustls-platform-verifier、`redirect::Policy::none()`、`no_proxy()`、10s/30s 逾時實作，以便 key 只會送到 BASE_URL（INV-3）。
 - 驗收：① `egress.rs` 的 redirect 測試解除 ignore 並通過（第二台 mock 收不到 `x-api-key`）② 非白名單 host 建構失敗 ③ proxy 只能由設定明確開啟 ④ 只有此型別能附加 key（code review 清單）
-- 狀態：✅ 工作流 A（待合併）｜ 相依：US-M1-01 ｜ 依賴與簽章已在 [0005](../changes/0005-m1-foundation.md)；實作見 [0006](../changes/0006-v4-api-facts.md)
+- 狀態：✅ ｜ 相依：US-M1-01 ｜ 依賴與簽章已在 [0005](../changes/0005-m1-foundation.md)；實作見 [0006](../changes/0006-v4-api-facts.md)
 
 **US-M1-08** 身為使用者，我想要 API 錯誤有一致的對應與重試，以便失敗時快速退回 raw 而不是卡住（§6.3）。
 - 驗收：① wiremock 覆蓋 401/403、429/529（retry-after 上限 2s、只重試一次）、400 額度不足、逾時 ② 錯誤訊息不含任何使用者內容
-- 狀態：✅ 工作流 A（待合併）｜ 相依：US-M1-07 ｜ `core/tests/api_errors.rs`；402 與 429 spend cap 也對應 `BudgetExhausted`（[0006](../changes/0006-v4-api-facts.md)）
+- 狀態：✅ ｜ 相依：US-M1-07 ｜ `core/tests/api_errors.rs`；402 與 429 spend cap 也對應 `BudgetExhausted`（[0006](../changes/0006-v4-api-facts.md)）
 
 **US-M1-09** 身為使用者，我想要 raw / light / polish / formal 四種模式的 prompt，以便依情境選擇潤稿強度（FR-4）。
 - 驗收：① raw 不呼叫 API ② polish system prompt 依 §6.5 ③ light、formal 的 prompt 寫入 docs/changes 並同步 §6.5（規格目前未定義）④ 單元測試確認標籤清除
-- 狀態：🧑 工作流 B 實作完成（[0007](../changes/0007-polish-prompts-and-guard.md)）；light / formal prompt 待人確認（D-9），§6.5 同步待整合階段 ｜ 相依：D-9
+- 狀態：🧑 實作與測試完成（[0007](../changes/0007-polish-prompts-and-guard.md)）；light / formal prompt 待人確認（D-9），§6.5 同步由 docs 整合者套用 ｜ 相依：D-9
 
 **US-M1-10** 身為使用者，我想要「潤飾並翻譯」的 prompt 變體（en / zh-TW / ja），以便一次請求得到譯文（FR-8、ADR-9）。
 - 驗收：① 依 §6.5 翻譯變體與 `{target_style_rule}` ② `max_tokens` 用 ×3 公式（已有 `request_type.rs` 測試）③ 詞彙表拼寫保留
@@ -142,19 +153,19 @@
 
 **US-M1-12** 身為使用者，我想要翻譯模式的守門（內容單位、跨語言比例、目標語言比例 ≥ 60%），以便不輸出半翻譯結果（FR-8）。
 - 驗收：① 沿用 `guard::content_units` ② 固定語料 + proptest ③ 0.3 / 3 / 60% 以語料校正，結果寫入 docs/changes
-- 狀態：🧑 工作流 B 實作與校正完成（[0007](../changes/0007-polish-prompts-and-guard.md)：長度改用加權大小、上限 ×2 + 10，新增 ja 假名檢查）；待 D-7 確認 ｜ 相依：US-M1-11、D-7
+- 狀態：🧑 實作與校正完成（[0007](../changes/0007-polish-prompts-and-guard.md)：長度改用加權大小、上限 ×2 + 10，新增 ja 假名檢查）；待 D-7 確認 ｜ 相依：US-M1-11、D-7
 
 **US-M1-13** 身為使用者，我想要 `polish()` 串起 prompt、client、guard、budget，任何錯誤都退回 raw，以便永遠拿得到可用文字（FR-4、FR-8）。
 - 驗收：① `PolishResult` 含 `fell_back_to_raw`、`fallback_reason`、`usage` ② 翻譯在 raw / 無 key / 硬上限時輸出原文並給「翻譯需要 API」原因 ③ wiremock 端到端測試
-- 狀態：🚧 工作流 B：流程與替身測試完成（[0007](../changes/0007-polish-prompts-and-guard.md)）；wiremock 端到端 `core/tests/polish_e2e.rs` 等工作流 A 的 client，暫 `#[ignore]` ｜ 相依：US-M1-08、10、12、14
+- 狀態：✅ ｜ 相依：US-M1-08、10、12、14 ｜ ③ `core/tests/polish_e2e.rs` 已解除 ignore，經真正的 `AnthropicClient` 對 wiremock；不完整回應（`is_complete()`）退回 raw 並保留 usage；請求不含 temperature、`thinking` 為 disabled（[0014](../changes/0014-m1-integration.md)）
 
 **US-M1-14** 身為使用者，我想要依 API usage 累計 token、可編輯價目表、月軟 / 硬上限，以便費用可控（FR-6、§6.8）。
 - 驗收：① budget.json 帶 schema version，非機密 ② 硬上限時 `needs_api` 請求改走 raw ③ 每月 1 日歸零（單元測試注入時間）
-- 狀態：✅ 工作流 D（待整合）｜ 相依：US-M1-15 ｜ 見 [0009](../changes/0009-models-budget-config.md)
+- 狀態：✅ ｜ 相依：US-M1-15 ｜ 見 [0009](../changes/0009-models-budget-config.md)；FFI `polish` / `budget_status` 記帳與「ledger 損毀視為硬上限」（[0014](../changes/0014-m1-integration.md)）
 
 **US-M1-15** 身為使用者，我想要非機密設定以 JSON 存在 App Support 目錄並帶 schema version，以便設定可攜且不含 key（§10、INV-1）。
 - 驗收：① 涵蓋模式、快捷鍵、目標語言、模型、詞彙表、價目表、預算、proxy ② 讀寫測試確認檔案不含金絲雀
-- 狀態：✅ 工作流 D（待整合）｜ 相依：D-3 ✅（路徑由呼叫端傳入，見 [0005](../changes/0005-m1-foundation.md)）｜ 見 [0009](../changes/0009-models-budget-config.md)
+- 狀態：✅ ｜ 相依：D-3 ✅（路徑由呼叫端傳入，見 [0005](../changes/0005-m1-foundation.md)）｜ 見 [0009](../changes/0009-models-budget-config.md)；金絲雀掃描設定檔（[0014](../changes/0014-m1-integration.md)）
 
 **US-M1-16** 身為使用者，我想要自訂詞彙表同時注入 STT initial prompt 與潤稿 system prompt，以便專有名詞拼對（FR-7）。
 - 驗收：① 兩處注入點有單元測試（只斷言結構與長度，不斷言詞彙表內容）② 詞彙表不出現在 log 或錯誤訊息
@@ -170,23 +181,23 @@
 
 **US-M1-19** 身為安全稽核者，我想要 `ModelDownloader` 只抓 manifest 的 URL、驗證 SHA-256、支援手動匯入，以便下載器拿不到 key 也收不到被換掉的檔（INV-7、§8）。
 - 驗收：① `downloader.rs` 的 checksum 測試解除 ignore ② 另一個 reqwest Client，無 redirect 到 manifest 外的 host ③ `downloader.rs` 文字掃描仍通過 ④ 超過 size 中止
-- 狀態：✅ 工作流 D（待整合）｜ 相依：US-M1-18、D-3 ✅ ｜ redirect 手動跟隨、逐跳檢查 `redirect_hosts`，見 [0009](../changes/0009-models-budget-config.md)
+- 狀態：✅ ｜ 相依：US-M1-18、D-3 ✅ ｜ redirect 手動跟隨、逐跳檢查 `redirect_hosts`，見 [0009](../changes/0009-models-budget-config.md)；FFI `download_model` / `import_model`
 
 **US-M1-20** 身為安全稽核者，我想要 tracing 只記事件、長度與耗時，panic hook 不記 payload，以便 log 與 crash 不洩漏（§6.9、INV-6）。
 - 驗收：① 自訂 panic hook 只記位置 ② 測試以 tracing-subscriber 擷取輸出 ③ 無任何遠端 sink
-- 狀態：⬜ 整合階段（panic hook 放 core 共用檔，平行期間凍結；CLI 端 subscriber 由 E 設定）｜ 相依：—
+- 狀態：✅ ｜ 相依：— ｜ `core::panic_hook::install()`（只記位置，`ffi::init` 會安裝）；CLI 自有 stderr 版；`canary.rs` 的 `panic_hook_logs_location_not_payload` 以 tracing 擷取驗證；deny.toml 擋遙測 / crash 上傳套件（[0014](../changes/0014-m1-integration.md)）
 
 **US-M1-21** 身為安全稽核者，我想要金絲雀測試跑完所有正常與錯誤路徑並掃描 log、設定目錄、暫存目錄，以便 INV-1/2/6 有自動化證明（§11）。
 - 驗收：① `core/tests/canary.rs` 解除 ignore ② 金絲雀出現次數為 0 ③ 整合測試可用的 mock vault（目前 `mock.rs` 只在 `cfg(test)`，`tests/` 用不到，需改為 feature 或測試 helper）
-- 狀態：🚧 工作流 C（vault 部分 ✅）＋整合階段 ｜ 相依：US-M1-06、13、14、15、20 ｜ ① ② vault 路徑已解除 ignore 並通過，harness 供其他路徑加入（[0008](../changes/0008-vault.md)）；③ 已完成（[0005](../changes/0005-m1-foundation.md)）
+- 狀態：✅ ｜ 相依：US-M1-06、13、14、15、20 ｜ vault、API 錯誤（401/403/402/400/429/529/500/302/格式錯誤/逾時）、polish 退回、設定 / 預算寫檔、下載器錯誤、FFI 全部跑過，金絲雀 0 次；另斷言金絲雀只出現在送往 API 的 `x-api-key`；`CoreError` 每個 variant 由窮舉 `match` 保證列入（[0008](../changes/0008-vault.md)、[0014](../changes/0014-m1-integration.md)）
 
 **US-M1-22** 身為安全稽核者，我想要 UniFFI 匯出 §6.1 介面，且沒有任何回傳 key 的函式，以便 Swift 只經手 key 一次（INV-2）。
 - 驗收：① `ffi.rs` 匯出 §6.1 全部函式（含 async `polish`）② 測試掃描匯出簽章，回傳型別不含 key ③ `store_key` 收下即轉 `SecretString`
-- 狀態：⏸ 等 D-10（uniffi 為 MPL-2.0）與各工作流完成 ｜ 相依：US-M1-06、13、17、19、D-10
+- 狀態：🧑 ｜ 相依：US-M1-06、13、17、19、D-10 ✅、D-11 ｜ ② ③ 完成；① §6.1 全部匯出（另加 `init`、`set_utc_offset`、`import_model`），但 `polish` 等為阻塞呼叫（每次一個 current-thread runtime），真正的 async 匯出需要 `uniffi/tokio`（D-11）。`core/tests/ffi_surface.rs`、`ffi_flow.rs`；Swift binding 產生方式留到 M2（D-12）（[0014](../changes/0014-m1-integration.md)）
 
 **US-M1-23** 身為貢獻者，我想要 `keepsay-cli <file.wav> [--mode] [--translate]`，以便不開 App 就能測整條管線（§13 M1）。
 - 驗收：① wav → 逐字稿 → 潤稿 / 潤稿並翻譯 ② 輸出只到 stdout，不寫檔、不記 log 內容 ③ key 經由 vault 取得，不接受命令列參數或環境變數
-- 狀態：🚧 CLI 完成（[0010](../changes/0010-stt-cli.md)），polish / key / budget / models 路徑待各工作流合併後整合驗證 ｜ 相依：US-M1-13、17、D-3 ✅（WAV 自行實作）
+- 狀態：✅ ｜ 相依：US-M1-13、17、D-3 ✅（WAV 自行實作）｜ [0010](../changes/0010-stt-cli.md)；`cli/tests/cli_api.rs`（feature `test-endpoint`）以 wiremock 跑 `polish --text-stdin`、`--translate`、`key verify` / `status`、`budget`；wav 端到端在設 `KEEPSAY_TEST_WHISPER_MODEL` 時跑（[0014](../changes/0014-m1-integration.md)）
 
 **US-M1-24** 身為安全稽核者，我想要匯入可信組織的 cargo-vet 稽核並逐步消化 exemptions，以便新增的 M1 依賴有人審過（INV-9）。
 - 驗收：① 由人決定要信任的來源（mozilla、google、bytecode-alliance…）② exemptions 數量在本 PR 前後列出 ③ 不由 agent 執行 certify / trust
@@ -194,7 +205,7 @@
 
 **US-M1-25** 身為安全稽核者，我想要自動檢查音訊與逐字稿不落地，以便 INV-5 不只靠 review。
 - 驗收：① STT 與 polish 路徑跑完後暫存與設定目錄無新檔（併入金絲雀掃描）② `stt/`、`polish/` 不使用 `std::fs` 寫入（文字掃描測試，比照 `downloader.rs`）
-- 狀態：🚧 ② ✅ `core/tests/no_disk_writes.rs`；① 待整合階段併入金絲雀（CLI 端已有 `cli/tests/cli.rs` 檢查資料目錄無新檔）｜ 相依：US-M1-17、US-M1-21
+- 狀態：✅ ｜ 相依：US-M1-17、US-M1-21 ｜ ① 金絲雀測試斷言 polish / API 路徑後資料目錄為空，CLI 端 `cli.rs` / `cli_api.rs` 同樣檢查；② `core/tests/no_disk_writes.rs` 改為掃描 `stt/`、`polish/` 下所有檔案（[0014](../changes/0014-m1-integration.md)）
 
 **US-M1-26** 身為維護者，我想要完成 V7 spike（OpenCC Rust 實作與依賴成本），以便決定 raw 模式的簡繁問題是否要引入新依賴。
 - 驗收：① 以 M1-17 的樣本量化簡體出現率 ② §15 V7 回填，需依賴時提 D-5
@@ -459,7 +470,9 @@
 | D-7 | 翻譯守門門檻校正結果是否接受 | US-M1-12 | 🧑 待確認 [0007](../changes/0007-polish-prompts-and-guard.md) |
 | D-8 | push-to-talk 是否從 v1.1 提前到 M2 / M3 | US-BL-01、FR-2 | 🧑 |
 | D-9 | light / formal 模式的 prompt 內容（§6.5 未定義） | US-M1-09 | 🧑 草稿見 [0007](../changes/0007-polish-prompts-and-guard.md) |
-| D-10 | uniffi 授權為 MPL-2.0，不在 deny.toml 允許清單：是否加逐 crate 例外，或改用其他 FFI 方式 | US-M1-22、M2、M4a | 🧑 |
+| D-10 | uniffi 授權為 MPL-2.0，不在 deny.toml 允許清單：是否加逐 crate 例外，或改用其他 FFI 方式 | US-M1-22、M2、M4a | ✅ [0012](../changes/0012-ring-and-uniffi.md)：6 個 uniffi crate 逐 crate 例外 |
+| D-11 | 是否批准 `uniffi/tokio` feature，讓 `polish`、`store_key`、`verify_key`、`download_model` 成為真正的 async 匯出（目前為阻塞 + 每次呼叫一個 current-thread runtime） | US-M1-22、M2-04 | 🧑 見 [0014](../changes/0014-m1-integration.md) |
+| D-12 | M2 的 Swift binding 產生器：`uniffi` 的 `cli` feature（workspace 內 bin crate，或 workspace 外 `cargo install`），以及 core 加 `staticlib` / `cdylib` crate-type 或改由薄 FFI crate 承擔 | US-M2-04 | 🧑 見 [0014](../changes/0014-m1-integration.md) |
 
 §16 人工事項：
 
