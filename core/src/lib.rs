@@ -8,18 +8,29 @@
 //! - INV-4: [`api::MessagesRequest`] has no tool fields at all.
 //! - INV-7: [`downloader`] never touches [`vault`].
 //!
-//! M0 status: types and seams only; behaviour lands in M1.
+//! The UniFFI surface for the Swift apps is [`ffi`] (PROPOSAL §6.1,
+//! docs/changes/0014). Rust hosts (CLI, Tauri) call the modules directly.
 
 #[cfg(all(feature = "test-endpoint", not(debug_assertions)))]
 compile_error!("feature `test-endpoint` must never be enabled in release builds (INV-3)");
+#[cfg(all(feature = "test-support", not(debug_assertions)))]
+compile_error!("feature `test-support` must never be enabled in release builds (INV-1, INV-2)");
 
 pub mod api;
 pub mod budget;
 pub mod config;
 pub mod downloader;
 pub mod ffi;
+pub mod panic_hook;
 pub mod polish;
 pub mod stt;
+mod tls;
 pub mod vault;
 
 pub use api::error::CoreError;
+pub use budget::{BudgetStatus, Usage};
+pub use polish::{FallbackReason, Mode, PolishOptions, PolishResult, TargetLang};
+pub use stt::{SttEngine, SttOptions};
+pub use vault::{Fingerprint, KeyVault};
+
+uniffi::setup_scaffolding!();

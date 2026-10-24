@@ -30,6 +30,30 @@ jobs:
       - run: rustup toolchain install
       - run: cargo fmt --all --check
 
+  unsafe-scope:
+    # docs/changes/0005: `unsafe` is allowed only in core/src/vault/windows.rs.
+    # The workspace lint is "deny"; any other mention of `unsafe_code` in Rust
+    # sources, Cargo manifests or cargo config could relax it, so it fails here.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Workspace lint is still deny
+        run: grep -qx 'unsafe_code = "deny"' Cargo.toml
+      - name: No unsafe_code override outside core/src/vault/windows.rs
+        run: |
+          offenders="$(git ls-files -z -- '*.rs' '*Cargo.toml' '.cargo/*' \
+            | xargs -0 grep -l 'unsafe_code' -- \
+            | grep -vx -e 'Cargo.toml' -e 'core/src/vault/windows.rs' || true)"
+          if [ -n "$offenders" ]; then
+            echo "::error::unsafe_code mentioned outside core/src/vault/windows.rs:"
+            echo "$offenders"
+            exit 1
+          fi
+      - name: windows.rs opts in exactly once
+        run: test "$(grep -c 'allow(unsafe_code)' core/src/vault/windows.rs)" -eq 1
+
   clippy:
     runs-on: ubuntu-latest
     steps:
@@ -51,30 +75,51 @@ jobs:
           RUSTFLAGS: -D warnings
       - run: cargo test --workspace --all-features --locked
 
+  test-os:
+    # Compiles and tests the platform vault code (Keychain, Credential
+    # Manager) on real OSes. Without `whisper`, so no cmake/clang needed.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - run: cargo clippy -p keepsay-core --all-targets --locked --features test-endpoint,test-support -- -D warnings
+      - run: cargo test -p keepsay-core --locked --features test-endpoint,test-support
+
   release-feature-guard:
     # INV-3: `test-endpoint` must never reach a release build.
+    # INV-1/2: neither may `test-support` (exposes the mock vault).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: rustup toolchain install
-      - name: No workspace member enables test-endpoint
+      - name: No workspace member enables test-endpoint or test-support
         run: |
           tree="$(cargo tree --workspace --locked -e normal,build,features -i keepsay-core)"
           echo "$tree"
-          if grep -q 'feature "test-endpoint"' <<<"$tree"; then
-            echo "::error::test-endpoint is enabled in the normal dependency graph"
-            exit 1
-          fi
-      - name: Release build succeeds without it
+          for f in test-endpoint test-support; do
+            if grep -q "feature \"$f\"" <<<"$tree"; then
+              echo "::error::$f is enabled in the normal dependency graph"
+              exit 1
+            fi
+          done
+      - name: Release build succeeds without them
         run: cargo build --workspace --release --locked
-      - name: Release build refuses it
+      - name: Release build refuses them
         run: |
-          if cargo build -p keepsay-core --release --locked --features test-endpoint; then
-            echo "::error::release build accepted feature test-endpoint"
-            exit 1
-          fi
+          for f in test-endpoint test-support; do
+            if cargo build -p keepsay-core --release --locked --features "$f"; then
+              echo "::error::release build accepted feature $f"
+              exit 1
+            fi
+          done
 
   deny:
     runs-on: ubuntu-latest

@@ -28,6 +28,51 @@ allow = [
 confidence-threshold = 0.9
 unused-allowed-license = "allow"
 
+# Per-crate exceptions for whitelisted (§14) dependencies whose license is
+# permissive but not in the general allow list (docs/changes/0005). Scoped to
+# the named crate only; a new crate under the same license still fails.
+[[licenses.exceptions]]
+crate = "whisper-rs"
+allow = ["Unlicense"]
+
+[[licenses.exceptions]]
+crate = "whisper-rs-sys"
+allow = ["Unlicense"]
+
+# Mozilla's root certificate list as data, pulled in by rustls-platform-verifier
+# (fallback roots on platforms without a usable OS verifier).
+[[licenses.exceptions]]
+crate = "webpki-root-certs"
+allow = ["CDLA-Permissive-2.0"]
+
+# uniffi (§14, FFI to Swift) is MPL-2.0: file-level copyleft, compatible with
+# an Apache-2.0 project as long as uniffi's own files stay MPL. Human-approved
+# per crate (docs/changes/0012), not a global allow, so any other MPL crate
+# still fails.
+[[licenses.exceptions]]
+crate = "uniffi"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "uniffi_core"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "uniffi_macros"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "uniffi_meta"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "uniffi_internal_macros"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "uniffi_pipeline"
+allow = ["MPL-2.0"]
+
 [licenses.private]
 ignore = true
 
@@ -41,6 +86,8 @@ deny = [
     { crate = "openssl", reason = "TLS must be rustls (PROPOSAL §6.3)" },
     { crate = "openssl-sys", reason = "TLS must be rustls (PROPOSAL §6.3)" },
     { crate = "native-tls", reason = "TLS must be rustls (PROPOSAL §6.3)" },
+    { crate = "aws-lc-rs", reason = "rustls crypto provider is ring (docs/changes/0012)" },
+    { crate = "aws-lc-sys", reason = "rustls crypto provider is ring (docs/changes/0012)" },
     { crate = "sentry", reason = "INV-6: no crash upload" },
     { crate = "opentelemetry", reason = "INV-6: no telemetry" },
     { crate = "ureq", reason = "single HTTP stack: reqwest only" },

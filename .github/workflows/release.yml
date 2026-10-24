@@ -1,0 +1,276 @@
+name: Release
+
+# INV-8 / PROPOSAL §9 / docs/changes/0013-release-pipeline.md
+#
+# Release artifacts are produced only here, only from a v*.*.* tag on main.
+#   meta     decide version, check tag == Cargo.toml version, tag is on main
+#   build    keepsay-cli per target: pinned toolchain, --locked, feature guard
+#   sums     SHA256SUMS over all archives
+#   attest   build provenance for every archive and SHA256SUMS   (tag only)
+#   publish  draft GitHub Release, behind the `release` environment (tag only)
+#
+# workflow_dispatch is a dry run: it builds, packages and checksums, uploads
+# workflow artifacts, and never attests or publishes.
+#
+# Hardening: read-only token by default; permissions are raised per job only
+# where needed; only first-party actions/*, each pinned to a full commit SHA;
+# no repository or environment secrets are referenced except in the
+# disabled (`if: false`) signing placeholders below.
+#
+# Not yet here: macOS .app/DMG (M2), Windows MSI/NSIS (M3), iOS TestFlight
+# (M4a). They will be added as jobs in this workflow, so that every shipped
+# binary goes through the same sums/attest/publish path.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  meta:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      publish: ${{ steps.meta.outputs.publish }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      source_date_epoch: ${{ steps.meta.outputs.source_date_epoch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Full history so meta.sh can check the tag is reachable from main.
+          fetch-depth: 0
+      - id: meta
+        run: scripts/release/meta.sh
+
+  build:
+    needs: meta
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-24.04
+          - target: aarch64-apple-darwin
+            os: macos-15
+          - target: x86_64-pc-windows-msvc
+            os: windows-2025
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_TARGET: ${{ matrix.target }}
+      VERSION: ${{ needs.meta.outputs.version }}
+      SOURCE_DATE_EPOCH: ${{ needs.meta.outputs.source_date_epoch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned toolchain (rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustup target add "$RELEASE_TARGET"
+
+      - name: Record toolchain and runner
+        run: |
+          {
+            echo "### $RELEASE_TARGET"
+            echo '```'
+            rustc -Vv
+            cargo -V
+            echo "runner: ${ImageOS:-?} ${ImageVersion:-?} ($RUNNER_OS/$RUNNER_ARCH)"
+            cmake --version | head -n 1 || true
+            echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      # INV-3 (test-endpoint) and INV-1/2 (test-support). build.sh runs the
+      # same guard again; this step makes a failure obvious in the UI.
+      - name: Release graph has no test-endpoint / test-support
+        run: scripts/release/feature-guard.sh "$RELEASE_TARGET"
+
+      - name: Build keepsay-cli (release, --locked, default features)
+        run: scripts/release/build.sh "$RELEASE_TARGET"
+
+      # ------------------------------------------------------------------
+      # DISABLED signing placeholders. TODO(PROPOSAL §16 items 1–2,
+      # US-M5-03 / US-M5-04): enable once the Apple Developer ID / App Store
+      # Connect API key and the Windows cloud-HSM signing service exist.
+      # Before enabling:
+      #   - store the credentials as secrets of the `release` environment
+      #     only (never repository secrets), and add `environment: release`
+      #     to this job, so signing also waits for manual approval;
+      #   - sign before packaging, so SHA256SUMS and provenance cover the
+      #     signed bytes;
+      #   - use Apple's / Microsoft's own CLIs (codesign, notarytool,
+      #     signtool); no third-party actions.
+      # ------------------------------------------------------------------
+      - name: "[DISABLED] macOS codesign + notarize (TODO §16-1)"
+        if: false && runner.os == 'macOS'
+        env:
+          APPLE_DEVELOPER_ID_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          # Sketch only:
+          #   create a temporary keychain, import the Developer ID cert
+          #   codesign --force --options runtime --timestamp \
+          #     --sign "Developer ID Application: … ($APPLE_TEAM_ID)" \
+          #     "target/$RELEASE_TARGET/release/keepsay-cli"
+          #   ditto -c -k keepsay-cli keepsay-cli.zip
+          #   xcrun notarytool submit keepsay-cli.zip --wait \
+          #     --key AuthKey.p8 --key-id "$ASC_API_KEY_ID" --issuer "$ASC_API_ISSUER_ID"
+          #   delete the temporary keychain and key file
+          # A bare CLI binary cannot be stapled; the DMG from M2 will be.
+          echo "::error::macOS signing is not implemented yet"
+          exit 1
+
+      - name: "[DISABLED] Windows Authenticode via cloud HSM (TODO §16-2)"
+        if: false && runner.os == 'Windows'
+        env:
+          WINDOWS_SIGNING_CLIENT_ID: ${{ secrets.WINDOWS_SIGNING_CLIENT_ID }}
+          WINDOWS_SIGNING_CLIENT_SECRET: ${{ secrets.WINDOWS_SIGNING_CLIENT_SECRET }}
+          WINDOWS_SIGNING_ENDPOINT: ${{ secrets.WINDOWS_SIGNING_ENDPOINT }}
+        run: |
+          # Sketch only: signtool sign /fd SHA256 /tr <RFC3161 TSA> /td SHA256
+          #   with the provider's dlib so the private key stays in the HSM,
+          #   then signtool verify /pa "target/$RELEASE_TARGET/release/keepsay-cli.exe".
+          echo "::error::Windows signing is not implemented yet"
+          exit 1
+
+      - name: Package
+        run: scripts/release/package.sh "$RELEASE_TARGET" "$VERSION" dist
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  sums:
+    needs: [meta, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - name: Expect exactly one archive per target
+        run: |
+          ls -l dist
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 3
+      - name: SHA256SUMS
+        run: |
+          scripts/release/checksums.sh dist
+          { echo '### SHA256SUMS'; echo '```'; cat dist/SHA256SUMS; echo '```'; } >>"$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  attest:
+    needs: [meta, sums]
+    if: needs.meta.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write      # Sigstore signing certificate via OIDC
+      attestations: write  # store the attestation on this repo
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: dist
+      - name: Files still match SHA256SUMS
+        working-directory: dist
+        run: sha256sum --strict -c SHA256SUMS
+      # One attestation whose subjects are every archive and SHA256SUMS;
+      # `gh attestation verify <file>` works for each of them.
+      - id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Keep the Sigstore bundle for offline verification
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          mkdir -p bundle
+          cp "$BUNDLE" "bundle/keepsay-cli-$VERSION.sigstore.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: attestation
+          path: bundle/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [meta, attest]
+    if: needs.meta.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    # Manual approval gate (PROPOSAL §9, US-M5-01). Required reviewers are
+    # configured in repo Settings → Environments → release (§16 item 3).
+    environment: release
+    permissions:
+      contents: write  # create the draft release and upload assets
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: attestation
+          path: bundle
+      - name: Files still match SHA256SUMS
+        working-directory: dist
+        run: sha256sum --strict -c SHA256SUMS
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+        run: |
+          # Never overwrite: a tag gets exactly one release.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::release $TAG already exists; refusing to replace its assets"
+            exit 1
+          fi
+          {
+            echo "Built by [this workflow run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) from \`$GITHUB_SHA\`."
+            echo
+            echo "Verify before running: see [docs/release/VERIFYING.md]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$TAG/docs/release/VERIFYING.md)."
+            echo
+            echo '```'
+            cat dist/SHA256SUMS
+            echo '```'
+            echo
+            echo "Binaries in this release are not yet code-signed (PROPOSAL §16 items 1–2)."
+          } >notes.md
+          set -- --draft --verify-tag --repo "$GITHUB_REPOSITORY" \
+            --title "keepsay $TAG" --notes-file notes.md
+          if [ "$PRERELEASE" = true ]; then set -- "$@" --prerelease; fi
+          gh release create "$TAG" "$@" dist/* bundle/*
