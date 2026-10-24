@@ -28,6 +28,23 @@ allow = [
 confidence-threshold = 0.9
 unused-allowed-license = "allow"
 
+# Per-crate exceptions for whitelisted (§14) dependencies whose license is
+# permissive but not in the general allow list (docs/changes/0005). Scoped to
+# the named crate only; a new crate under the same license still fails.
+[[licenses.exceptions]]
+crate = "whisper-rs"
+allow = ["Unlicense"]
+
+[[licenses.exceptions]]
+crate = "whisper-rs-sys"
+allow = ["Unlicense"]
+
+# Mozilla's root certificate list as data, pulled in by rustls-platform-verifier
+# (fallback roots on platforms without a usable OS verifier).
+[[licenses.exceptions]]
+crate = "webpki-root-certs"
+allow = ["CDLA-Permissive-2.0"]
+
 [licenses.private]
 ignore = true
 

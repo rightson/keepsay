@@ -13,14 +13,42 @@ default = []
 # Allows overriding the API base URL for tests (wiremock). Refused at compile
 # time in release builds; CI also checks no release artifact enables it.
 test-endpoint = []
+# Exposes `vault::mock::MockVault` to integration tests. Refused at compile
+# time in release builds, same as `test-endpoint`.
+test-support = []
+# Local speech-to-text via whisper-rs (builds whisper.cpp; needs cmake and
+# clang). Off by default so `cargo test -p keepsay-core` stays fast.
+whisper = ["dep:whisper-rs"]
 
 [dependencies]
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "json"] }
 secrecy = "0.10.3"
 serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = { version = "0.11.1", default-features = false }
 thiserror = "2.0.21"
+tokio = { version = "1.54.1", default-features = false, features = ["rt", "macros", "time"] }
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+whisper-rs = { version = "0.16.0", default-features = false, optional = true }
+zeroize = "1.9.1"
+
+# OSX_10_15: `PasswordOptions::use_protected_keychain`, needed for
+# ThisDeviceOnly on macOS (data protection keychain, V6).
+# OSX_10_15 enables `PasswordOptions::use_protected_keychain`, which macOS
+# needs for ThisDeviceOnly (data protection keychain, V6).
+[target.'cfg(target_vendor = "apple")'.dependencies]
+security-framework = { version = "3.7.0", default-features = false, features = ["OSX_10_15"] }
+whisper-rs = { version = "0.16.0", default-features = false, features = ["metal"], optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", default-features = false, features = ["Win32_Foundation", "Win32_Security_Credentials"] }
 
 [lints]
 workspace = true
 
 [dev-dependencies]
-serde_json = "1.0.154"
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", default-features = false, features = ["rt", "macros", "time"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "std"] }
+wiremock = "0.6.5"

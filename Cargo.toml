@@ -11,7 +11,11 @@ repository = "https://github.com/rightson/keepsay"
 publish = false
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+# "deny", not "forbid": forbid cannot be relaxed locally, and exactly one file
+# (core/src/vault/windows.rs, Win32 Credential Manager FFI) opts out with an
+# inner allow attribute. CI rejects that attribute anywhere else
+# (docs/changes/0005).
+unsafe_code = "deny"
 
 [workspace.lints.clippy]
 dbg_macro = "deny"
