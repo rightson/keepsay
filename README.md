@@ -30,8 +30,9 @@ The same approach covers the rest of the stack: a dependency whitelist, `cargo-d
 
 - **One key to polish, one to translate.** Press a hotkey to start, speak, and press again. You get cleaned-up text, or cleaned-up text translated into your target language, in a single request.
   - macOS defaults: `fn` + `Z` to polish, `fn` + `Shift` + `Z` to polish and translate.
-  - Windows defaults: `Right Alt` to polish, `Right Shift` + `Right Alt` to polish and translate.
-  - Both defaults are being validated (see V8 and V9 in the spec), and every hotkey can be changed.
+    Keyboards without `fn` can use `Option` + `Space` / `Option` + `Shift` + `Space`.
+  - Windows defaults: `Alt` + `Shift` + `Z` to polish, `Alt` + `Shift` + `X` to polish and translate.
+  - Every hotkey can be changed. The reasoning is in [docs/changes/0004](docs/changes/0004-license-domain-hotkeys.md).
 - **Local speech-to-text.** whisper.cpp runs on-device, with Metal on Apple Silicon. Models download only when you ask, and each file is checked against a SHA-256 hash pinned in the repo. You can also import model files by hand.
 - **Modes.** raw (no API call, works offline), light (punctuation only), polish (the default), and formal. Any failure falls back to raw.
 - **Tuned for Taiwanese Mandarin mixed with English,** with a custom glossary for names and jargon.
@@ -66,4 +67,4 @@ The Rust toolchain is pinned in `rust-toolchain.toml`. The Apple and Windows app
 
 ## License
 
-See [LICENSE](LICENSE). The final license choice is still open; see PROPOSAL §16.
+Licensed under the [Apache License, Version 2.0](LICENSE).

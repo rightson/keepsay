@@ -29,6 +29,7 @@ We especially want to hear about any of these:
 - Any telemetry, analytics or remote configuration (INV-6).
 - The model downloader reaching the key, or accepting a file whose hash does not match (INV-7).
 - Weaknesses in CI, signing, or provenance (INV-8).
+- The macOS hotkey event tap reading, storing, or forwarding any keystroke other than `fn` + `Z` / `fn` + `Shift` + `Z` (THREAT_MODEL T7).
 
 ## Fundamental limitation
 

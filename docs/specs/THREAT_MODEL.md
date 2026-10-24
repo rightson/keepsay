@@ -88,7 +88,14 @@
   - 回呼只判讀特定 virtual key / flag，不保存、不轉送其他按鍵。
   - 這段程式碼隔離在單一小模組，並列入 code review 必查項目。
   - 預設使用不需要監聽權限的組合，監聽式快捷鍵由使用者主動開啟。
-- 狀態：待 V8 / V9 決定。採用監聽式方案時，本節要補上自動化檢查。
+- 狀態（v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md）：V8 / V9 已決定。
+  - Windows：不使用監聽。預設 Alt + Shift + Z / X 以 RegisterHotKey 註冊，App 只收到自己註冊的組合。Right Alt 延到 v1.1 以後，屆時需重新評估本節。
+  - macOS：採監聽。fn + Z / fn + Shift + Z 以 active CGEventTap 實作，App 能看到全域 keyDown / keyUp。對策：
+    - 回呼只比對 Z 的 keycode 與 fn、Shift 旗標；不保存、不記 log、不轉送任何按鍵，非命中事件原封不動放行。
+    - tap 程式碼隔離在單一 Swift 檔案，列入 code review 必查項目；只訂閱 keyDown / keyUp。
+    - 權限沿用 AX 插入已需要的「輔助使用」，不申請「輸入監控」。Secure Input 期間（密碼欄位）系統不會把事件交給 tap。
+    - 不授予輔助使用權限時退回 Carbon 備援組合（⌥ Space / ⌥ ⇧ Space），不需任何監聽權限。
+  - 待補（M2）：自動化檢查。例如 CI 以文字掃描確認 tap 模組不呼叫檔案、網路、剪貼簿或 logging API，也不把 event 存進集合。
 
 ## 5. 根本限制（對外說明，同步放在 README 與 SECURITY.md）
 

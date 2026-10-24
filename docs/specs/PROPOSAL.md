@@ -1,6 +1,6 @@
-# keepsay 設計與實作提案 v0.2
+# keepsay 設計與實作提案 v0.3
 
-> v0.2 相對 v0.1 的變更以「（v0.2 變更，見 docs/changes/NNNN-…）」標示。變更紀錄放在 `docs/changes/`。
+> v0.2 相對 v0.1 的變更以「（v0.2 變更，見 docs/changes/NNNN-…）」標示，v0.3 的變更以「（v0.3 變更，見 docs/changes/NNNN-…）」標示。變更紀錄放在 `docs/changes/`。
 >
 > 給 Claude Code 的使用方式：
 > 1. 依「里程碑」順序實作，每個里程碑開工前先輸出實作計畫，完成後對照 DoD（完成定義）自我檢查。
@@ -80,16 +80,16 @@ key 存在使用者裝置上，就不可能完全防住同權限的惡意程式�
 ### 4.1 功能需求
 - FR-1 Key 管理：輸入 → 格式檢查（前綴 sk-ant-）→ 線上驗證（GET /v1/models）→ 存入安全儲存區 → 顯示 fingerprint。可更換、可刪除。驗證失敗時不存。
 - FR-2 觸發方式：桌面用全域快捷鍵（v1 為 toggle 模式，push-to-talk 延到 v1.1）；iOS 用 App 內按鈕、App Intent 或捷徑（v1），鍵盤 extension 延到 M4b。
-  預設快捷鍵（v0.2 變更，見 docs/changes/0001-hotkeys-and-translate.md）：
+  預設快捷鍵（v0.2 變更，見 docs/changes/0001-hotkeys-and-translate.md；（v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md））：
 
-  | 平台 | 潤飾 | 潤飾並翻譯到目標語言 |
-  |------|------|----------------------|
-  | Windows | Right Alt | Right Shift + Right Alt |
-  | macOS | fn + Z | fn + Shift + Z |
+  | 平台 | 潤飾 | 潤飾並翻譯到目標語言 | 備援組合（不需額外權限） |
+  |------|------|----------------------|--------------------------|
+  | Windows | Alt + Shift + Z | Alt + Shift + X | —（預設本身即可用 RegisterHotKey 註冊） |
+  | macOS | fn + Z | fn + Shift + Z | ⌥ Space / ⌥ ⇧ Space（Carbon） |
 
   - toggle 語意：按一次開始錄音，再按一次結束並處理。本次輸出是否翻譯，由「開始錄音時」使用的組合決定；結束時按兩種組合任一皆可。錄音中按 Esc 取消。
   - 「潤飾」使用設定中的預設模式（raw / light / polish / formal）；「潤飾並翻譯」一律走 polish + translate（見 FR-8）。
-  - 兩個預設組合在技術上都無法用目前 §7.1 / §7.3 指定的註冊 API 實作，見 V8、V9。在 V8、V9 結論前，快捷鍵在設定中可改，且必須提供不需要額外權限的備援組合。
+  - （v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md）V8、V9 已決定：Windows 原指定的 Right Alt / Right Shift + Right Alt 改為上表組合，Right Alt 延到 v1.1 以後作為使用者主動開啟的進階選項；macOS 保留 fn + Z / fn + Shift + Z，以 active CGEventTap 實作，另提供 Carbon 備援組合給沒有 fn 鍵的鍵盤。快捷鍵一律可在設定中修改。
 - FR-3 本機語音辨識：支援台灣繁體中文與中英夾雜。
 - FR-4 潤稿模式：raw（不呼叫 API）、light（只補標點）、polish（預設，去贅字並修正明顯辨識錯誤）、formal（正式書面語）。任何錯誤都自動退回 raw 並提示使用者。
 - FR-5 插入文字到目前聚焦的應用程式。
@@ -203,7 +203,7 @@ key 存在使用者裝置上，就不可能完全防住同權限的惡意程式�
         fn exists(&self) -> bool;
     }
 
-- Apple：使用 security-framework crate。class 為 kSecClassGenericPassword，service 為 "dev.keepsay.apikey"，屬性 WhenUnlockedThisDeviceOnly，synchronizable 設 false。iOS 不設定共享 access group，鍵盤 extension 因此讀不到。可選設定：加 SecAccessControl .userPresence，要求生物辨識。
+- Apple：使用 security-framework crate。class 為 kSecClassGenericPassword，service 為 "dev.rightson.keepsay.apikey"（v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md），屬性 WhenUnlockedThisDeviceOnly，synchronizable 設 false。iOS 不設定共享 access group，鍵盤 extension 因此讀不到。可選設定：加 SecAccessControl .userPresence，要求生物辨識。
 - Windows：使用 windows crate 的 CredWriteW / CredReadW，type 為 CRED_TYPE_GENERIC，persist 為 CRED_PERSIST_LOCAL_MACHINE，target 為 "keepsay/anthropic"。讀出後立即轉成 SecretString，並把原始 buffer 清零（CredFree 前覆寫）。
 - 駐留策略：
   - 預設：每次請求時從 vault 讀取，用完立刻 drop，不快取。
@@ -323,6 +323,7 @@ user：
 - App Sandbox：【待驗證 V2】開啟 sandbox 後，AX 文字插入和 CGEvent 貼上是否仍可用。可用就開，只開 network.client 和 audio-input；不可用就關閉 sandbox，維持最小 entitlements，並在 SECURITY.md 說明原因。
 - 快捷鍵：Carbon RegisterEventHotKey，toggle 模式，不需要額外權限。
   （v0.2 變更，見 docs/changes/0001-hotkeys-and-translate.md）預設改為 fn + Z（潤飾）、fn + Shift + Z（潤飾並翻譯）。fn 不是 Carbon 熱鍵可用的修飾鍵，無法用 RegisterEventHotKey 註冊，需要 CGEventTap 或 NSEvent global monitor，見【待驗證 V9】。Carbon 熱鍵保留為不需額外權限的備援組合。
+  （v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md）V9 決定：fn + Z / fn + Shift + Z 以 active CGEventTap（kCGEventTapOptionDefault，只訂閱 keyDown / keyUp）實作，命中時吞掉 Z。回呼只看 Z 的 keycode 與 fn（kCGEventFlagMaskSecondaryFn）、Shift 旗標，不保存、不轉送任何按鍵，程式碼隔離在單一小模組（見 THREAT_MODEL T7）。active tap 需要「輔助使用」權限，AX 插入本來就需要，不新增權限類別。Carbon 備援組合預設 ⌥ Space / ⌥ ⇧ Space，給沒有 fn 鍵的外接鍵盤，或使用者不授予輔助使用權限時使用。
 - 錄音：AVAudioEngine 轉 16 kHz mono f32，只存在記憶體。
 - 插入：
   1. 優先用 AX：找到聚焦元素，設定 kAXSelectedTextAttribute。
@@ -349,6 +350,7 @@ user：
   - IPC command 不回傳 key。
 - 快捷鍵：tauri-plugin-global-shortcut（底層為 RegisterHotKey），toggle 模式。不使用低階鍵盤 hook。
   （v0.2 變更，見 docs/changes/0001-hotkeys-and-translate.md）預設改為 Right Alt（潤飾）、Right Shift + Right Alt（潤飾並翻譯）。RegisterHotKey 無法註冊單獨的修飾鍵，也無法區分左右 Alt，因此這組預設與上一行「不使用低階鍵盤 hook」直接衝突，見【待驗證 V8】。在 V8 決定前，本行的 RegisterHotKey 方案保留為備援。
+  （v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md）V8 決定：預設改為 Alt + Shift + Z（潤飾）、Alt + Shift + X（潤飾並翻譯），以 RegisterHotKey 註冊（加 MOD_NOREPEAT）。維持「不使用低階鍵盤 hook」。Right Alt 延到 v1.1 以後作為進階選項（V8 選項 (c)），v1 不實作。
 - 錄音：cpal。
 - 插入：
   1. 優先用 SendInput 搭配 KEYEVENTF_UNICODE 逐字輸入。
@@ -486,7 +488,13 @@ Swift：v1 僅使用 Apple 系統框架。
   - (a) 允許 WH_KEYBOARD_LL，限縮為只判讀 VK_RMENU / VK_RSHIFT 的狀態，其餘按鍵原封不動放行、不保存，偵測到 AltGr 配置時自動改用備援組合。需修改 §7.3 並加入 THREAT_MODEL。
   - (b) 改用 Raw Input 只讀不攔截。無法吞掉 Alt，選單列干擾問題仍在。
   - (c) 預設維持 RegisterHotKey 可註冊的組合（例如 Ctrl + Alt + Space / Ctrl + Alt + Shift + Space），Right Alt 作為使用者主動開啟的進階選項（背後走 (a)）。
-  結論：____
+  結論（v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md）：選 (c)。使用者授權「指定的鍵真的很麻煩就換別的」，Right Alt 符合「很麻煩」：需要 WH_KEYBOARD_LL 與 unsafe FFI（workspace 禁止 unsafe）、與 AltGr 配置衝突、需要遮蔽選單列啟用、前景是高權限視窗時因 UIPI 收不到、行為與 keylogger 相同。預設改為 Alt + Shift + Z / Alt + Shift + X，理由：
+  - 不含 Ctrl + Alt：AltGr 在 Windows 等同 Ctrl + Alt，RegisterHotKey 要求修飾鍵完全相符，所以 AltGr + Shift + Z（例如波蘭文的 Ż）不會被攔截。
+  - 不含 Win：Win + 字母多數被系統保留（Win + H 是系統語音輸入）。
+  - 避開注音 / 新注音的 Ctrl + Space、Shift、Shift + Space、Ctrl + Shift。Alt + Shift 單獨按下放開是切換輸入語言，中間夾第三個鍵時不觸發；Windows 內建的語音存取也用 Alt + Shift + B / C。
+  - 避開 Alt + Space（系統選單、Copilot、PowerToys Run）與 Alt + Z（NVIDIA overlay、VS Code 自動換行）。
+  - 已知衝突：Word 的 Alt + Shift + X（標記索引項目）屬冷門功能；VS Code、Chrome、Edge、Firefox、Excel 預設沒有 Alt + Shift + Z / X。Z 與 macOS 的 fn + Z 同一顆鍵，X 在它旁邊。
+  - 註冊失敗（被其他程式佔用）時提示使用者在設定中改鍵。
 - V9（v0.2 新增）：macOS 預設快捷鍵 fn + Z / fn + Shift + Z 的實作方式。已知事實：
   - Carbon RegisterEventHotKey 公開的修飾鍵只有 cmd、shift、option、control，不含 fn。實務上普遍認為 fn 無法用它註冊，spike 時需要實測確認。
   - 可行路徑是 CGEventTap（listen-only 即可）或 NSEvent.addGlobalMonitorForEvents 搭配 keyDown 檢查 .function 旗標。兩者都需要「輔助使用」或「輸入監控」權限。插入文字本來就需要輔助使用權限，但權限仍然擴大成「可讀全域按鍵」。
@@ -499,7 +507,13 @@ Swift：v1 僅使用 Apple 系統框架。
   - (b) 以 active event tap 吞掉 Z。
   - (c) 預設改為 Carbon 可註冊的組合（例如 ⌥ Space / ⌥ ⇧ Space），fn + Z 作為進階選項。
   不論選哪個，都要提供 Carbon 備援組合給沒有 fn 鍵的鍵盤。
-  結論：____
+  結論（v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md）：選 (b)，保留 fn + Z / fn + Shift + Z。依據：
+  - 沒有衝突：Apple「Mac 鍵盤快速鍵」（support.apple.com/102650）列出的 fn 組合是 fn + A / ⇧A / C / D / E / F / H / N / Q / Delete / 方向鍵 / Control + F2–F8；TidBITS〈The Hidden Secrets of the Fn Key〉（2023-11）另列 fn + M、fn + Space。macOS 15 / 26 視窗並排用 fn + Control（+ Shift / Option）+ 方向鍵或 F / C / R。都不含 Z。
+  - 可偵測：CGEventFlags.maskSecondaryFn 的官方說明是「Fn 鍵在 keyboard、mouse 或 flags-changed 事件中按下」，所以 keyDown（Z）事件帶得到 fn 旗標。
+  - 用 active tap 吞掉 Z，避免 Z 送進前景 App。active tap 需要輔助使用權限，與 AX 插入相同；listen-only 反而要另外的「輸入監控」權限。
+  - 風險：SwiftUI 在 macOS 12 的 release note 註明「Fn shortcut modifier is deprecated and reserved for system usage」，Apple 未來可能把 fn + Z 收為系統快捷鍵。屆時改用 Carbon 備援組合為預設。
+  - 備援組合 ⌥ Space / ⌥ ⇧ Space（Carbon），給沒有 fn 鍵的外接鍵盤或不授予輔助使用權限的使用者。⌥ Space 可能和 Alfred、ChatGPT 等 App 的預設衝突，註冊失敗時提示改鍵。
+  - M2 spike 需要實測：fn + Z 不會觸發「按下 🌐 鍵」設定的動作（切換輸入法 / 表情符號 / 聽寫）；非 QWERTY 配置（AZERTY 的 Z 不在同一個位置）要在設定時依目前配置換算 keycode，不在回呼內做；Secure Input（密碼欄位）期間 tap 收不到事件屬預期行為；與 V2 的交互（sandbox 下能否建立 active tap）。
 
 ---
 
@@ -520,10 +534,10 @@ Swift：v1 僅使用 Apple 系統框架。
    仍需人工處理：
    - 在一般網路下確認 GitHub 同名 repo 與帳號。
    - 查詢 USPTO、TIPO、EUIPO 商標。
-   - 決定是否保留 keepsay 名稱，以及網域改用 keepsay.dev（Apple bundle id 已預定為 dev.keepsay.*，與 .dev 一致）。
-   名稱決定前，程式中的識別字（crate 名、bundle id、Keychain service）暫用 keepsay。
+   - ~~決定是否保留 keepsay 名稱，以及網域改用 keepsay.dev。~~ 已決定（v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md）：保留 keepsay；網域用 `keepsay.rightson.dev`，反向 DNS 識別字（bundle id、Keychain service 等）一律為 `dev.rightson.keepsay.*`。crate 名維持 `keepsay-core` / `keepsay-cli`。
+   商標查詢與 GitHub 同名確認仍待人工處理；若發現衝突，必須在 M1 結束前更名。
 6. 提交 Homebrew cask 和 winget manifest。
-7. （v0.2 新增，見 docs/changes/0003-m0-skeleton.md）確認授權。repo 的 LICENSE 是 GPL-3.0，但 ADR-8 寫的是 Apache-2.0，兩者不一致。另外 GPL 與 App Store 條款的相容性有爭議，曾有 GPL App 因此被下架，會影響 M4a / M4b 的 TestFlight 與 App Store 發佈。M0 的 Cargo metadata 暫依 LICENSE 檔案標為 GPL-3.0-only。
+7. ~~（v0.2 新增，見 docs/changes/0003-m0-skeleton.md）確認授權。~~ 已解決（v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md）：採 Apache-2.0。LICENSE 已換成 Apache-2.0 官方全文，Cargo metadata 改為 `Apache-2.0`。以下為原始問題描述：repo 的 LICENSE 是 GPL-3.0，但 ADR-8 寫的是 Apache-2.0，兩者不一致。另外 GPL 與 App Store 條款的相容性有爭議，曾有 GPL App 因此被下架，會影響 M4a / M4b 的 TestFlight 與 App Store 發佈。M0 的 Cargo metadata 暫依 LICENSE 檔案標為 GPL-3.0-only。
 
 ---
 
@@ -536,7 +550,7 @@ Swift：v1 僅使用 Apple 系統框架。
 - ADR-5：v1 不內建更新機制。維持單一網路出口，降低 T1 風險。
 - ADR-6：v1 不保存歷史紀錄。資料最小化。
 - ADR-7：永遠不使用 tool use。模型只能產生文字，不能執行動作。
-- ADR-8：授權採 Apache-2.0。相較 MIT 多了明確的專利授權條款；若偏好 MIT 可以更換，對安全設計沒有影響。（v0.2 註記：與 repo 現有 LICENSE（GPL-3.0）不一致，待決定，見 §16 第 7 項）
+- ADR-8：授權採 Apache-2.0。相較 MIT 多了明確的專利授權條款；若偏好 MIT 可以更換，對安全設計沒有影響。（v0.2 註記：與 repo 現有 LICENSE（GPL-3.0）不一致，待決定，見 §16 第 7 項）（v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md）已確認採 Apache-2.0，LICENSE 已更換。
 - ADR-9（v0.2 新增）：翻譯與潤飾合併在同一次 API 請求內完成，不另開翻譯服務、不使用 whisper translate。維持單一出口，請求數不變。
 - 往後的決策一律寫在 `docs/changes/NNNN-slug.md`，本節只保留摘要與連結。
 
