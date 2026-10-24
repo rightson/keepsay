@@ -130,23 +130,23 @@
 
 **US-M1-09** 身為使用者，我想要 raw / light / polish / formal 四種模式的 prompt，以便依情境選擇潤稿強度（FR-4）。
 - 驗收：① raw 不呼叫 API ② polish system prompt 依 §6.5 ③ light、formal 的 prompt 寫入 docs/changes 並同步 §6.5（規格目前未定義）④ 單元測試確認標籤清除
-- 狀態：🚧 工作流 B ｜ 相依：D-9
+- 狀態：🧑 工作流 B 實作完成（[0007](../changes/0007-polish-prompts-and-guard.md)）；light / formal prompt 待人確認（D-9），§6.5 同步待整合階段 ｜ 相依：D-9
 
 **US-M1-10** 身為使用者，我想要「潤飾並翻譯」的 prompt 變體（en / zh-TW / ja），以便一次請求得到譯文（FR-8、ADR-9）。
 - 驗收：① 依 §6.5 翻譯變體與 `{target_style_rule}` ② `max_tokens` 用 ×3 公式（已有 `request_type.rs` 測試）③ 詞彙表拼寫保留
-- 狀態：🚧 工作流 B ｜ 相依：US-M1-09
+- 狀態：✅ 工作流 B（[0007](../changes/0007-polish-prompts-and-guard.md)）｜ 相依：US-M1-09
 
 **US-M1-11** 身為使用者，我想要非翻譯模式的輸出守門，以便被注入或失控的輸出不會插入 App（§6.6、T5）。
 - 驗收：① 長度比例、標籤殘留、前言剝除規則 ② proptest 覆蓋 ③ 未通過時回傳 `fell_back_to_raw` 與原因
-- 狀態：🚧 工作流 B ｜ 相依：—
+- 狀態：✅ 工作流 B（[0007](../changes/0007-polish-prompts-and-guard.md)）｜ 相依：—
 
 **US-M1-12** 身為使用者，我想要翻譯模式的守門（內容單位、跨語言比例、目標語言比例 ≥ 60%），以便不輸出半翻譯結果（FR-8）。
 - 驗收：① 沿用 `guard::content_units` ② 固定語料 + proptest ③ 0.3 / 3 / 60% 以語料校正，結果寫入 docs/changes
-- 狀態：🚧 工作流 B ｜ 相依：US-M1-11、D-7
+- 狀態：🧑 工作流 B 實作與校正完成（[0007](../changes/0007-polish-prompts-and-guard.md)：長度改用加權大小、上限 ×2 + 10，新增 ja 假名檢查）；待 D-7 確認 ｜ 相依：US-M1-11、D-7
 
 **US-M1-13** 身為使用者，我想要 `polish()` 串起 prompt、client、guard、budget，任何錯誤都退回 raw，以便永遠拿得到可用文字（FR-4、FR-8）。
 - 驗收：① `PolishResult` 含 `fell_back_to_raw`、`fallback_reason`、`usage` ② 翻譯在 raw / 無 key / 硬上限時輸出原文並給「翻譯需要 API」原因 ③ wiremock 端到端測試
-- 狀態：🚧 工作流 B ｜ 相依：US-M1-08、10、12、14
+- 狀態：🚧 工作流 B：流程與替身測試完成（[0007](../changes/0007-polish-prompts-and-guard.md)）；wiremock 端到端 `core/tests/polish_e2e.rs` 等工作流 A 的 client，暫 `#[ignore]` ｜ 相依：US-M1-08、10、12、14
 
 **US-M1-14** 身為使用者，我想要依 API usage 累計 token、可編輯價目表、月軟 / 硬上限，以便費用可控（FR-6、§6.8）。
 - 驗收：① budget.json 帶 schema version，非機密 ② 硬上限時 `needs_api` 請求改走 raw ③ 每月 1 日歸零（單元測試注入時間）
@@ -158,7 +158,7 @@
 
 **US-M1-16** 身為使用者，我想要自訂詞彙表同時注入 STT initial prompt 與潤稿 system prompt，以便專有名詞拼對（FR-7）。
 - 驗收：① 兩處注入點有單元測試（只斷言結構與長度，不斷言詞彙表內容）② 詞彙表不出現在 log 或錯誤訊息
-- 狀態：🚧 工作流 B（prompt）、E（STT）｜ 相依：US-M1-09、US-M1-17
+- 狀態：🚧 工作流 B（prompt）✅（[0007](../changes/0007-polish-prompts-and-guard.md)）、E（STT）｜ 相依：US-M1-09、US-M1-17
 
 **US-M1-17** 身為使用者，我想要 whisper-rs 在本機辨識台灣繁中與中英夾雜，以便語音不離開裝置（FR-3、§6.7）。
 - 驗收：① `stt/whisper.rs` 實作 `SttEngine`，Apple 走 Metal ② 繁中 initial prompt ③ 樣本 wav 的辨識測試（可標 `#[ignore]` 需模型檔，CI 另行處理）
@@ -456,9 +456,9 @@
 | D-4 | cargo-vet 要信任哪些組織的稽核 | US-M1-24 | 🧑 |
 | D-5 | V7 結論後是否引入 OpenCC | US-BL-05 | 🧑（待 M1-26） |
 | D-6 | Windows CredMan target 是否也改為 `dev.rightson.keepsay.*` 風格（§6.2 仍為 `keepsay/anthropic`） | US-M1-05 | ✅ 0005：`dev.rightson.keepsay/anthropic` |
-| D-7 | 翻譯守門門檻校正結果是否接受 | US-M1-12 | 🧑（待語料） |
+| D-7 | 翻譯守門門檻校正結果是否接受 | US-M1-12 | 🧑 待確認 [0007](../changes/0007-polish-prompts-and-guard.md) |
 | D-8 | push-to-talk 是否從 v1.1 提前到 M2 / M3 | US-BL-01、FR-2 | 🧑 |
-| D-9 | light / formal 模式的 prompt 內容（§6.5 未定義） | US-M1-09 | 🧑 |
+| D-9 | light / formal 模式的 prompt 內容（§6.5 未定義） | US-M1-09 | 🧑 草稿見 [0007](../changes/0007-polish-prompts-and-guard.md) |
 | D-10 | uniffi 授權為 MPL-2.0，不在 deny.toml 允許清單：是否加逐 crate 例外，或改用其他 FFI 方式 | US-M1-22、M2、M4a | 🧑 |
 
 §16 人工事項：
