@@ -175,8 +175,10 @@ fn runtime() -> Result<tokio::runtime::Runtime, CoreError> {
 /// Set up the process-wide core: the platform vault (Keychain / Credential
 /// Manager) and the host's app data directory, which holds `config.json`,
 /// `budget.json` and `models/`. Calling it again replaces the previous state.
+/// Also installs the location-only panic hook (§6.9).
 #[uniffi::export]
 pub fn init(data_dir: String) -> Result<(), CoreError> {
+    crate::panic_hook::install();
     let vault = vault::platform_vault()?;
     install(Core::new(vault, PathBuf::from(data_dir)));
     tracing::info!("ffi: core initialized");

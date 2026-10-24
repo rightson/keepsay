@@ -21,6 +21,7 @@ pub mod budget;
 pub mod config;
 pub mod downloader;
 pub mod ffi;
+pub mod panic_hook;
 pub mod polish;
 pub mod stt;
 mod tls;
