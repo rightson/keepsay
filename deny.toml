@@ -8,7 +8,13 @@ all-features = true
 version = 2
 yanked = "deny"
 unmaintained = "all"
-ignore = []
+ignore = [
+    # Unmaintained (not a vulnerability). Reached only through Tauri's
+    # Linux-only GTK stack (glib-macros); keepsay builds Tauri for Windows
+    # only, so this proc-macro is never compiled. cargo-deny unions cfgs
+    # across targets, so it still shows up (docs/changes/0016).
+    { id = "RUSTSEC-2024-0370", reason = "proc-macro-error: only via Tauri's Linux GTK deps, never built (docs/changes/0016)" },
+]
 
 [licenses]
 version = 2
@@ -71,6 +77,30 @@ allow = ["MPL-2.0"]
 
 [[licenses.exceptions]]
 crate = "uniffi_pipeline"
+allow = ["MPL-2.0"]
+
+# Tauri 2 (§14, docs/changes/0016). cssparser / cssparser-macros /
+# dtoa-short / selectors come in through tauri-utils' HTML processing
+# (dom_query); option-ext through `dirs`. MPL-2.0 per crate, same reasoning
+# as uniffi above.
+[[licenses.exceptions]]
+crate = "cssparser"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "cssparser-macros"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "dtoa-short"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "selectors"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "option-ext"
 allow = ["MPL-2.0"]
 
 [licenses.private]
