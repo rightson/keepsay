@@ -73,62 +73,27 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  core-xcframework:
-    # Needs core/src/ffi.rs to export the UniFFI API (US-M1-22). Until the
-    # core calls `uniffi::setup_scaffolding!`, this job only reports a skip.
+  core-staticlibs:
+    # Cross-compiles keepsay-core as static libraries for macOS (arm64,
+    # x86_64), iOS and iOS Simulator with apple/scripts/build-core.sh.
+    # Swift binding generation + XCFramework packaging need uniffi's `cli`
+    # feature, pending approval (docs/changes/0014 D-12, 0015), so CI runs
+    # the script with KEEPSAY_SKIP_BINDGEN=1 until then.
     runs-on: macos-15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Does core export UniFFI?
-        id: ffi
-        run: |
-          if grep -rq 'setup_scaffolding' core/src; then
-            echo "ready=true" >>"$GITHUB_OUTPUT"
-          else
-            echo "::notice::core has no UniFFI scaffolding yet; skipping XCFramework build"
-            echo "ready=false" >>"$GITHUB_OUTPUT"
-          fi
-      - if: steps.ffi.outputs.ready == 'true'
-        run: rustup toolchain install
-      - name: Install uniffi-bindgen-swift (build tool, same version as Cargo.lock)
-        if: steps.ffi.outputs.ready == 'true'
-        run: |
-          v="$(awk '/^name = "uniffi"$/{getline; sub(/version = /,""); gsub(/"/,""); print; exit}' Cargo.lock)"
-          test -n "$v"
-          cargo install --locked "uniffi@$v" --features cli --bin uniffi-bindgen-swift
-      - name: Build keepsay-core XCFramework (macOS, iOS, iOS Simulator)
-        if: steps.ffi.outputs.ready == 'true'
+      - run: rustup toolchain install
+      - name: keepsay-core static libraries (macOS, iOS, iOS Simulator)
         run: apple/scripts/build-core.sh
-      - name: KeepsayKit tests with core linked
-        if: steps.ffi.outputs.ready == 'true'
-        run: swift test --package-path apple/KeepsayKit
-      - name: KeepsayKit with core builds for iOS
-        if: steps.ffi.outputs.ready == 'true'
+        env:
+          KEEPSAY_SKIP_BINDGEN: "1"
+      - name: Exported FFI symbols are present
         run: |
-          xcodebuild build -quiet -scheme KeepsayKit -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$RUNNER_TEMP/dd-ios"
-        working-directory: apple/KeepsayKit
-      - name: Package Keepsay.app with core (ad-hoc)
-        if: steps.ffi.outputs.ready == 'true'
-        run: apple/scripts/build-mac-app.sh
-      - name: Zip XCFramework
-        if: steps.ffi.outputs.ready == 'true'
-        run: cd apple/build/core && ditto -c -k --keepParent KeepsayCoreFFI.xcframework KeepsayCoreFFI.xcframework.zip
-      - if: steps.ffi.outputs.ready == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: KeepsayCoreFFI-xcframework
-          path: |
-            apple/build/core/KeepsayCoreFFI.xcframework.zip
-            apple/build/core/bindings/keepsay_core.swift
-          if-no-files-found: error
-          retention-days: 14
-      - if: steps.ffi.outputs.ready == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: Keepsay-macOS-adhoc
-          path: apple/build/Keepsay-macOS.zip
-          if-no-files-found: error
-          retention-days: 14
+          for p in macos ios ios-sim; do
+            lib="apple/build/core/libs/$p/libkeepsay_core.a"
+            lipo -info "$lib"
+            nm -g "$lib" 2>/dev/null | grep -q 'uniffi_keepsay_core_fn_func_store_key' \
+              || { echo "::error::$lib lacks the UniFFI exports"; exit 1; }
+          done

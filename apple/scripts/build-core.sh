@@ -19,10 +19,16 @@
 #                           the bindings are generated once and UniFFI checks
 #                           API checksums at load time.
 #   KEEPSAY_CORE_PROFILE    release (default) or debug.
+#   KEEPSAY_SKIP_BINDGEN=1  build and lipo the static libraries only (checks
+#                           that core cross-compiles); no bindings, no
+#                           XCFramework. Used by CI until D-12 is approved.
 #   UNIFFI_BINDGEN_SWIFT    path to the `uniffi-bindgen-swift` binary
 #                           (default: found on PATH). Install it with
 #                           `cargo install uniffi --version <locked> --features cli --bin uniffi-bindgen-swift`;
 #                           it is a build tool, not a dependency of the workspace.
+#                           PENDING APPROVAL: uniffi's `cli` feature
+#                           (docs/changes/0014 D-12, 0015). Step 2 below is
+#                           the only part that needs it.
 #
 # Rules: never builds with `test-endpoint` or `test-support` (INV-1/2/3).
 # Needs macOS with Xcode (lipo, xcodebuild).
@@ -47,7 +53,10 @@ case ",$FEATURES," in
   *test-endpoint*|*test-support*) die "refusing test-only features in an app build: $FEATURES" ;;
 esac
 [ "$(uname -s)" = Darwin ] || die "needs macOS with Xcode"
-command -v "$BINDGEN" >/dev/null || die "uniffi-bindgen-swift not found (set UNIFFI_BINDGEN_SWIFT)"
+SKIP_BINDGEN="${KEEPSAY_SKIP_BINDGEN:-0}"
+if [ "$SKIP_BINDGEN" != 1 ]; then
+  command -v "$BINDGEN" >/dev/null || die "uniffi-bindgen-swift not found (set UNIFFI_BINDGEN_SWIFT, or KEEPSAY_SKIP_BINDGEN=1)"
+fi
 
 targets_for() {
   case "$1" in
@@ -84,8 +93,14 @@ for platform in $PLATFORMS; do
   xcf_args+=(-library "$OUT/libs/$platform/libkeepsay_core.a" -headers "$OUT/headers")
 done
 
-# 2. Swift bindings, generated once in library mode from a host cdylib
-#    (the metadata is the same for every target with the same features).
+if [ "$SKIP_BINDGEN" = 1 ]; then
+  echo "==> KEEPSAY_SKIP_BINDGEN=1: static libraries in $OUT/libs; no bindings or XCFramework"
+  exit 0
+fi
+
+# 2. Swift bindings -- THE ONLY STEP THAT NEEDS uniffi's `cli` FEATURE
+#    (pending approval, docs/changes/0014 D-12). Generated once in library
+#    mode from a host cdylib (same metadata for every target and features).
 host="$(rustc -vV | sed -n 's/^host: //p')"
 echo "==> keepsay-core cdylib for bindgen ($host)"
 cargo rustc "${cargo_flags[@]}" --target "$host" --crate-type cdylib

@@ -22,7 +22,9 @@ M2 要在沒有 Xcode 的 Linux 開發環境中完成 macOS App，唯一的編�
 - `apple/scripts/build-core.sh`：`cargo rustc -p keepsay-core --crate-type staticlib` 建出 `aarch64-apple-darwin`、`x86_64-apple-darwin`、`aarch64-apple-ios`、`aarch64-apple-ios-sim`、`x86_64-apple-ios` 的 static lib，依平台 `lipo` 合併，`xcodebuild -create-xcframework` 打包成 `KeepsayCoreFFI.xcframework`。用 `cargo rustc --crate-type`，core/Cargo.toml 的 `crate-type` 維持不變（0012：避免每次 `cargo test` 都多連結 staticlib）。
 - Swift binding 用 `uniffi-bindgen-swift` 以 library mode 從 host 的 cdylib 產生一次（module `keepsay_coreFFI`）。所有 slice 必須使用相同 features（UniFFI 在載入時比對 checksum）；預設 `whisper`。腳本拒絕 `test-endpoint` / `test-support`。
 - 產物（gitignore）複製到 `KeepsayKit/Frameworks/` 與 `KeepsayKit/Sources/KeepsayCoreBindings/`。`Package.swift` 只有在兩者都存在時才加入 `KeepsayCoreFFI` binary target 與 `KeepsayCoreBindings` target；否則 `CoreBridge.make()` 回傳 `UnavailableCore`（無 key、無網路、polish 一律 raw、STT 不可用）。這讓平台程式碼在 FFI 完成前就能建置與測試。
-- `uniffi-bindgen-swift` 是建置工具（`cargo install uniffi@<Cargo.lock 版本> --features cli --bin uniffi-bindgen-swift`），不進 workspace 的依賴圖、不改 Cargo.lock。**待人工確認**：這等同在 CI 上建置 uniffi 的 `cli` feature（會拉 clap 等），雖不是專案依賴，仍請維護者確認可以接受（CLAUDE.md 的依賴規則）。替代方案：在 workspace 加一個不發佈的 `uniffi-bindgen` crate（需改 Cargo.lock 與 vet），或把產生的 binding 提交進 repo。
+- `uniffi-bindgen-swift` 是建置工具（`cargo install uniffi@<Cargo.lock 版本> --features cli --bin uniffi-bindgen-swift`），不進 workspace 的依賴圖、不改 Cargo.lock。**待人工批准（0014 D-12）**：它需要 uniffi 的 `cli` feature（會帶入 uniffi_bindgen、clap 等）。在批准前：`build-core.sh` 把 bindgen 隔離成單一步驟（步驟 2，註明待批准），`KEEPSAY_SKIP_BINDGEN=1` 時只建 static lib 與 lipo；CI 的 `core-staticlibs` job 以此模式驗證五個 target 都能交叉編譯，並以 `nm` 確認含 UniFFI 匯出符號，但不產生 binding 與 XCFramework，也不安裝 uniffi CLI。替代方案：在 workspace 加一個不發佈的 `uniffi-bindgen` crate（需改 Cargo.lock 與 vet），或把產生的 binding 提交進 repo。
+- `crate-type`：不需要改 core/Cargo.toml。`cargo rustc --crate-type staticlib|cdylib` 只影響這次建置。
+- `UniffiCore.swift`（只在 binding 存在時編譯）依 UniFFI Swift 命名慣例手寫對應；FFI 函式都是阻塞呼叫（0014），一律在 `Task.detached` 執行，不在 main thread。第一次真的產生 binding 時需要再編譯確認名稱。
 
 ### 3. 快捷鍵（落實 0004）
 
@@ -52,7 +54,7 @@ M2 要在沒有 Xcode 的 Linux 開發環境中完成 macOS App，唯一的編�
 - Hardened Runtime 開啟。`KeepsayMac.entitlements`（正式）：`com.apple.security.device.audio-input`、`keychain-access-groups = <TeamID>.dev.rightson.keepsay`（0008 的 data protection keychain 需要，屬受限 entitlement，要 provisioning profile，§16 第 1 項）。`KeepsayMac.adhoc.entitlements`（CI）只有 audio-input，所以 CI 產出的 App `store_key` 會得到 `Unsupported`（0008 預期行為）。
 - App Sandbox：暫不開啟。V2（sandbox 下 AX 寫入其他 App、CGEvent 貼上、active event tap 是否可用）只能在實機測，CI 無法驗證，結論為「待實機驗證」。不開 sandbox 時網路出口完全由程式碼層（INV-3、INV-7）限制。若 V2 結果為不可用，SECURITY.md 需加一段說明（SECURITY.md 不在本工作流範圍，交給整合者）。
 - bundle id `dev.rightson.keepsay.mac`；`LSUIElement`（沒有 Dock 圖示）；最低 macOS 14（`MenuBarExtra`、`SettingsLink`）。
-- CI artifact：`Keepsay-macOS-adhoc-nocore`（未連結 core）與 core 就緒後的 `Keepsay-macOS-adhoc`，以及 `KeepsayCoreFFI-xcframework`（給 iOS 工作流）。Notarization 待 §16 第 1 項。
+- CI artifact：`Keepsay-macOS-adhoc-nocore`（未連結 core）。D-12 批准後再加連結 core 的 App 與 `KeepsayCoreFFI-xcframework`（給 iOS 工作流）。Notarization 待 §16 第 1 項。
 
 ### 7. 設定
 
@@ -60,6 +62,9 @@ M2 要在沒有 Xcode 的 Linux 開發環境中完成 macOS App，唯一的編�
 
 ## Consequences
 
-- 需要 core 提供（請整合者在 ffi.rs 決定名稱）：`store_key`、`has_key`、`key_fingerprint`、`delete_key`、`verify_key`、`polish`、`transcribe`（含詞彙表與所選模型）、`budget_status`、`download_model`（含進度 callback）、**模型清單與安裝狀態**、**手動匯入模型（驗 SHA-256）**、**讀寫 config**。後三者不在 §6.1 的清單內，但 US-M2-09、US-M2-15 需要。
+- 0014 的 FFI 已涵蓋 key、polish、transcribe、budget、download（進度）、import。**仍需要 core 補上**（App 無法自己做，Swift 也不另寫設定檔）：
+  1. 讀寫 config：例如 `get_config() -> Config record`、`set_config(Config)`（mode、translate_to、stt_model、glossary、prices、budget、hotkeys），走 `Config::save` 的驗證。沒有它，設定頁的變更只在記憶體，`transcribe` 也無法切換 `stt_model`。
+  2. 模型清單與安裝狀態：例如 `models() -> Vec<ModelStatus { id, name, size, installed }>`（`installed` = 檔案存在；完整 SHA-256 驗證仍在載入時）。
+  3. （可選）`Unsupported` / `VaultNotEntitled` 在 Swift 端目前都顯示為「未簽章的開發版」，若要分開顯示，`CoreFailure` 再加一個 case 即可，不需改 core。
 - 待實機（US-M2-02、03、10、11、12、16）：V9 四項（🌐 鍵行為、AZERTY、Secure Input、sandbox 交互）、V2、AX 插入相容性、注音 / 倉頡 / 日文輸入法的切換、無 fn 鍵外接鍵盤、斷網與 key 失效提示。
 - 推按住說話（push-to-talk）到 v1.1，設定頁只顯示為停用選項。
