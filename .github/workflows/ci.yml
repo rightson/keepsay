@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# PROPOSAL §9: read-only token, no secrets in PR workflows, actions pinned to
+# full commit SHAs. Only first-party actions; tools are installed with
+# `cargo install --locked` at pinned versions.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_DENY_VERSION: 0.20.2
+  CARGO_VET_VERSION: 0.10.3
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - run: cargo fmt --all --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - run: cargo test --workspace --locked
+        env:
+          RUSTFLAGS: -D warnings
+      - run: cargo test --workspace --all-features --locked
+
+  release-feature-guard:
+    # INV-3: `test-endpoint` must never reach a release build.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - name: No workspace member enables test-endpoint
+        run: |
+          tree="$(cargo tree --workspace --locked -e normal,build,features -i keepsay-core)"
+          echo "$tree"
+          if grep -q 'feature "test-endpoint"' <<<"$tree"; then
+            echo "::error::test-endpoint is enabled in the normal dependency graph"
+            exit 1
+          fi
+      - name: Release build succeeds without it
+        run: cargo build --workspace --release --locked
+      - name: Release build refuses it
+        run: |
+          if cargo build -p keepsay-core --release --locked --features test-endpoint; then
+            echo "::error::release build accepted feature test-endpoint"
+            exit 1
+          fi
+
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - run: cargo install --locked cargo-deny@"$CARGO_DENY_VERSION"
+      - run: cargo deny --locked check
+
+  vet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - run: cargo install --locked cargo-vet@"$CARGO_VET_VERSION"
+      - run: cargo vet --locked
