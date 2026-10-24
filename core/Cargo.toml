@@ -21,7 +21,14 @@ test-support = []
 whisper = ["dep:whisper-rs"]
 
 [dependencies]
-reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "json"] }
+# TLS: rustls + rustls-platform-verifier (OS trust store) with the ring crypto
+# provider; `rustls-no-provider` keeps aws-lc-rs/aws-lc-sys out of the graph
+# (docs/changes/0012). The provider must be installed at runtime before any
+# reqwest Client is built (see 0012).
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "json"] }
+# Direct dependency only to select the ring provider (already transitive via
+# reqwest). Default features off: they would re-enable aws-lc-rs.
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 secrecy = "0.10.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
@@ -29,6 +36,10 @@ sha2 = { version = "0.11.1", default-features = false }
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", default-features = false, features = ["rt", "macros", "time"] }
 tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+# FFI to Swift (PROPOSAL §6.1), proc-macro style. MPL-2.0, allowed per crate in
+# deny.toml (docs/changes/0012). Default features off: `cargo-metadata`, `cli`,
+# `bindgen`, `build` belong to the binding generator, not the library.
+uniffi = { version = "0.32.2", default-features = false }
 whisper-rs = { version = "0.16.0", default-features = false, optional = true }
 zeroize = "1.9.1"
 

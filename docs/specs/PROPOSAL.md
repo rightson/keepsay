@@ -213,6 +213,7 @@ key 存在使用者裝置上，就不可能完全防住同權限的惡意程式�
 ### 6.3 AnthropicClient（唯一能附加 key 的型別）
 
 - reqwest + rustls + rustls-platform-verifier（使用 OS 信任庫，相容企業網路環境）。
+  - （v0.4 變更，見 docs/changes/0012-ring-and-uniffi.md）rustls 的加密實作改用 ring，不用 aws-lc-rs：reqwest 開 `rustls-no-provider`，rustls 直接依賴只開 `ring`、`std`、`tls12`。依賴圖（全 feature、全 target）不得出現 aws-lc-rs / aws-lc-sys，deny.toml 以 bans 保證。建構任何 reqwest Client（AnthropicClient 與 ModelDownloader）之前，必須先安裝 process 預設 provider：`rustls::crypto::ring::default_provider().install_default()`（已安裝時回傳 Err，忽略即可）；沒有安裝時 reqwest 在建構時 panic。驗證器仍是 rustls-platform-verifier（OS 信任庫），只是改用 ring provider 建立。
 - 常數 BASE_URL = "https://api.anthropic.com"；建構時檢查 scheme 和 host，任何其他 host 一律拒絕。
 - redirect::Policy::none()。
 - 預設 no_proxy()，不讀環境變數；proxy 只能在設定中明確開啟。
@@ -470,10 +471,15 @@ reqwest（rustls，關閉預設 features）、rustls-platform-verifier、tokio�
 
 （v0.4 變更，見 docs/changes/0005-m1-foundation.md）
 - 不新增依賴的項目：CLI 的 WAV 讀取自行實作（PCM 16-bit 整數與 32-bit 浮點，立體聲混成單聲道）；模型 manifest 改用 JSON，以 serde_json 解析。
-- rustls-platform-verifier 由 reqwest 0.13 的 `rustls` feature 帶入並作為預設驗證器，不另列為直接依賴；TLS 加密實作隨之為 aws-lc-rs。
+- rustls-platform-verifier 由 reqwest 0.13 的 ~~`rustls`~~ `rustls-no-provider` feature 帶入並作為預設驗證器，不另列為直接依賴；~~TLS 加密實作隨之為 aws-lc-rs。~~（v0.4 變更，見 docs/changes/0012-ring-and-uniffi.md）TLS 加密實作改為 ring。
 - tracing-subscriber 也作為 keepsay-core 的 dev-dependency，供測試擷取 log。
-- uniffi 暫不加入：授權為 MPL-2.0，不在 deny.toml 的允許清單，需另行決定（ROADMAP D-10）。
+- ~~uniffi 暫不加入：授權為 MPL-2.0，不在 deny.toml 的允許清單，需另行決定（ROADMAP D-10）。~~
 - deny.toml 以「逐 crate 例外」允許 whisper-rs / whisper-rs-sys（Unlicense）與 webpki-root-certs（CDLA-Permissive-2.0），不放寬一般允許清單。
+
+（v0.4 變更，見 docs/changes/0012-ring-and-uniffi.md）
+- rustls（0.23，`default-features = false`，只開 `ring`、`std`、`tls12`）列為 keepsay-core 的直接依賴，唯一用途是選擇 ring provider；它原本就是 reqwest 的間接依賴，ring 也已在依賴圖中。
+- uniffi 0.32（proc-macro 寫法，`default-features = false`，不開 `cli`、`bindgen`、`build`、`cargo-metadata`）加入 keepsay-core。使用者批准 MPL-2.0：deny.toml 只對 uniffi、uniffi_core、uniffi_macros、uniffi_meta、uniffi_internal_macros、uniffi_pipeline 六個 crate 開 MPL-2.0 例外，一般允許清單不變。
+- aws-lc-rs、aws-lc-sys 列入 deny.toml 的 bans。
 
 Swift：v1 僅使用 Apple 系統框架。
 
