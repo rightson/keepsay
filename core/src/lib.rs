@@ -23,6 +23,7 @@ pub mod downloader;
 pub mod ffi;
 pub mod polish;
 pub mod stt;
+mod tls;
 pub mod vault;
 
 pub use api::error::CoreError;

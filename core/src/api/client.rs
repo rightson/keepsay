@@ -106,6 +106,7 @@ impl AnthropicClient {
         total_timeout: Duration,
         https_only: bool,
     ) -> Result<Self, CoreError> {
+        crate::tls::ensure_crypto_provider();
         let mut builder = reqwest::Client::builder()
             // INV-3: a redirect is returned as a 3xx status, never followed,
             // so the key can never be re-sent to a `Location` host.

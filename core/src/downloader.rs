@@ -315,6 +315,7 @@ impl ModelDownloader {
 }
 
 fn build_client() -> Result<reqwest::Client, CoreError> {
+    crate::tls::ensure_crypto_provider();
     reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .no_proxy()
