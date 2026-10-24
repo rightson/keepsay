@@ -57,7 +57,7 @@
   - 預設不在記憶體快取 key，每次請求都重新讀取，用完就 zeroize（INV-2）。
   - key 不經過剪貼簿、不寫檔（金絲雀測試）。
   - （v0.4 變更，見 docs/changes/0008-vault.md）macOS 只用 data protection keychain，不用 file-based login keychain（後者不強制 ThisDeviceOnly 與 synchronizable）。未簽章 binary 寫不進時回錯誤，不退回較弱的儲存。
-  - （v0.4 變更，見 docs/changes/0008-vault.md）更換 key：Apple 端不做原地更新（`SecItemUpdate` 會保留舊項目的 access control），而是先刪除再以完整屬性新增，確保每次寫入都是 ThisDeviceOnly、非同步；代價是新增失敗時舊 key 也被刪除，使用者需重新輸入。Windows 端 `CredWriteW` 直接覆寫同一 target。是否改為原地更新：待確認。
+  - 更換 key（v0.4 變更，見 docs/changes/0014-m1-integration.md）：Apple 端先以 `anthropic.pending` account 用完整屬性（ThisDeviceOnly、非同步）新增新 key，成功後刪除舊項目，再以 `SecItemUpdate` 只改 account；任一步失敗時舊 key 保留。Windows 端 `CredWriteW` 一次覆寫同一 target。
 - 殘餘風險：根本無法完全防禦。同權限程式可以 attach debugger、注入 dylib/DLL，或在使用者解鎖時存取 Keychain 項目（macOS 會跳出存取提示，Windows CredMan 不會）。所以損失上限必須由帳號端保證（PROPOSAL §12）。
 
 ### T3 使用者無意外洩
