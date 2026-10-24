@@ -40,7 +40,7 @@ pub const GLOSSARY_PROMPT_BUDGET: usize = 200;
 /// full-width punctuation and English terms left as-is (§6.7).
 pub const ZH_TW_PROMPT: &str = "以下是台灣繁體中文的逐字稿，英文術語保持原樣，例如：我們明天下午開會，討論 API 的設計和 release 時程。";
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, uniffi::Record)]
 pub struct SttOptions {
     /// BCP-47 hint, e.g. "zh-TW".
     pub language: Option<String>,

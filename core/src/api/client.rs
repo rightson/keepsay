@@ -147,6 +147,23 @@ impl AnthropicClient {
         Ok(())
     }
 
+    /// `GET /v1/models` with the key already in `vault` (FR-1 "verify" on a
+    /// stored key, §6.1 `verify_key`). The key is read at the point of use
+    /// for each attempt and dropped before sending; callers never `load`.
+    pub async fn verify_stored_key(&self, vault: &dyn KeyVault) -> Result<(), CoreError> {
+        let url = format!("{}/v1/models?limit=1", self.base_url);
+        let resp = self
+            .send_with_retry("models", || {
+                let key = vault.load()?;
+                let value = key_header(&key)?;
+                drop(key);
+                Ok(self.http.get(&url).header("x-api-key", value))
+            })
+            .await?;
+        let _ = resp.bytes().await.map_err(CoreError::from)?;
+        Ok(())
+    }
+
     /// `POST /v1/messages`. Loads the key from `vault` at the point of use
     /// and drops it before returning. Errors map per §6.3.
     pub async fn messages(

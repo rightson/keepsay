@@ -33,6 +33,7 @@
 - B2：core ↔ 網路。key 只能出現在 AnthropicClient 送往 BASE_URL 的請求中（INV-3）。
 - B3：core ↔ 模型（LLM）。模型的輸出只是資料，它無法觸發任何動作（INV-4），並且要先經過守門（§6.6）才會插入。
 - B4：repo ↔ 使用者手上的 binary。只有 CI 的產出可信（INV-8）。
+- B5（v0.4 變更，見 docs/changes/0009-models-budget-config.md）：core ↔ 模型下載來源。ModelDownloader 不帶 key（INV-7），出口限於 manifest 的 URL（`huggingface.co`）與該筆 `redirect_hosts` 的 redirect 目標（目前 `*.hf.co` CDN）。這些 host 在設計上不受信任：檔案完整性只由編譯進 binary 的 SHA-256 與 size 保證。
 
 ## 4. 威脅與對策
 
@@ -41,6 +42,9 @@
 - 對策：
   - 依賴白名單與人工批准（INV-9）。由 `deny.toml` 的 bans/sources 保證，`cargo vet` 稽核每個依賴版本。
   - （v0.4 變更，見 docs/changes/0005-m1-foundation.md）M1 依賴依 §14 加入，features 最小化並以 `cargo tree -e features` 核對（無 native-tls、無系統 proxy）。授權例外只對指定 crate 放行。`unsafe` 只允許在 `core/src/vault/windows.rs`，由 CI `unsafe-scope` job 保證。測試後門 feature（`test-endpoint`、`test-support`）在 release build 以 `compile_error!` 拒絕，CI release-feature-guard 另外檢查。
+  - （v0.4 變更，見 docs/changes/0011-cargo-vet-imports.md、docs/changes/0012-ring-and-uniffi.md）cargo-vet 涵蓋：匯入 mozilla、google、bytecode-alliance、isrg、zcash、embark-studios 的稽核，目前 47 個 crate 版本完全稽核、19 個部分稽核、163 個只有人工批准的一次性 exemption（等於沒人稽核過，只減不增；agent 不得自行新增）。`imports.lock` 的變更必須經 PR review，因為匯入等於信任這些組織的 `audits.toml`。
+  - （v0.4 變更，見 docs/changes/0012-ring-and-uniffi.md）TLS 加密實作改用 ring，aws-lc-rs / aws-lc-sys（依賴圖中最大的一塊 C / 組語）列入 deny.toml bans，無法被重新帶入。優先人工審視的高風險依賴：ring、whisper-rs-sys 與 build 期依賴（cmake、cc、bindgen）、security-framework、windows*。
+  - （v0.4 變更，見 docs/changes/0013-release-pipeline.md）發佈管道：只在 `v*.*.*` tag 發佈，tag 必須在 `main` 上且版本相符；`publish` 需 `release` environment 人工核准，產出 draft release 再由人發佈；只用第一方 action、不用快取（防 cache poisoning）。簽章尚未啟用（§16 第 1、2 項）。
   - Actions 釘 commit SHA，workflow `permissions: contents: read`，PR workflow 不使用 secret（CI 設定，人工 review）。
   - 只由 CI 發佈，附簽章與 provenance（INV-8，M5）。
   - 沒有自動更新（ADR-5），惡意版本無法自動推送到所有使用者。
@@ -52,6 +56,8 @@
   - key 只存在 OS 安全儲存區，設定為 ThisDeviceOnly 與 LOCAL_MACHINE（INV-1，金絲雀測試）。
   - 預設不在記憶體快取 key，每次請求都重新讀取，用完就 zeroize（INV-2）。
   - key 不經過剪貼簿、不寫檔（金絲雀測試）。
+  - （v0.4 變更，見 docs/changes/0008-vault.md）macOS 只用 data protection keychain，不用 file-based login keychain（後者不強制 ThisDeviceOnly 與 synchronizable）。未簽章 binary 寫不進時回錯誤，不退回較弱的儲存。
+  - （v0.4 變更，見 docs/changes/0008-vault.md）更換 key：Apple 端不做原地更新（`SecItemUpdate` 會保留舊項目的 access control），而是先刪除再以完整屬性新增，確保每次寫入都是 ThisDeviceOnly、非同步；代價是新增失敗時舊 key 也被刪除，使用者需重新輸入。Windows 端 `CredWriteW` 直接覆寫同一 target。是否改為原地更新：待確認。
 - 殘餘風險：根本無法完全防禦。同權限程式可以 attach debugger、注入 dylib/DLL，或在使用者解鎖時存取 Keychain 項目（macOS 會跳出存取提示，Windows CredMan 不會）。所以損失上限必須由帳號端保證（PROPOSAL §12）。
 
 ### T3 使用者無意外洩
@@ -66,7 +72,8 @@
 - 對策：
   - 平台 TLS 驗證（rustls-platform-verifier）。
   - 預設 `no_proxy()`；禁止 redirect；BASE_URL 完全比對（`core/tests/egress.rs`）。
-- 殘餘風險：裝置被安裝了惡意根憑證（ADR-4 決定不做 pinning）。
+  - （v0.4 變更，見 docs/changes/0009-models-budget-config.md）模型下載（INV-7）：ModelDownloader 同樣 `no_proxy()`、關閉自動 redirect，改為手動跟隨最多 5 跳，每跳要求 `https://`、不帶帳密、同 origin 或在該筆 `redirect_hosts` 內。Hugging Face 會 302 到依地區變動的 CDN，所以三筆模型都允許 `.hf.co` 子網域（不含 `hf.co` 本身與相似網域）。MITM 或被入侵的 CDN 最多能讓下載失敗：寫死的 SHA-256 與 size 不符就拒絕，暫存檔刪除、舊模型保留（`core/tests/downloader.rs`）。
+- 殘餘風險：裝置被安裝了惡意根憑證（ADR-4 決定不做 pinning）；對模型下載而言，此情況仍只會造成下載失敗。
 
 ### T5 逐字稿內含 prompt injection
 - 情境：使用者口述或朗讀的內容中夾帶「忽略以上指示…」等文字。
