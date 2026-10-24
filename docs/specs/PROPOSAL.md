@@ -211,8 +211,8 @@ key 存在使用者裝置上，就不可能完全防住同權限的惡意程式�
   - （v0.4 變更，見 docs/changes/0005-m1-foundation.md）Win32 FFI 需要 `unsafe`。整個 repo 只有 `core/src/vault/windows.rs` 可以使用，以檔案開頭的 `#![allow(unsafe_code)]` 開放；workspace lint 由 `forbid` 改為 `deny`（`forbid` 無法在局部放寬）。CI 的 `unsafe-scope` job 在其他任何 Rust 原始碼、Cargo manifest 或 cargo 設定出現 `unsafe_code` 時失敗。每個 `unsafe` 區塊都要有 `// SAFETY:` 註解。
 - 實作細節（v0.4 變更，見 docs/changes/0008-vault.md）：
   - Apple：account 為 `anthropic`。macOS 一律使用 data protection keychain（security-framework feature `OSX_10_15`，`use_protected_keychain()`；屬性查詢用 `ignore_legacy_keychains()`），從不使用 file-based login keychain；iOS 本來就是 DP keychain。保護類別只能經 `SecAccessControl::create_with_protection(Some(AccessibleWhenUnlockedThisDeviceOnly), flags)` 設定，flags 為 0 或 `USER_PRESENCE`。永遠不得呼叫 `set_access_control_options`（它會退回非 ThisDeviceOnly 的 `kSecAttrAccessibleWhenUnlocked`，違反 INV-1）。所有查詢明確帶 `set_access_synchronized(Some(false))`（`None` 代表 SynchronizableAny）。`kSecAttrLabel` 存 fingerprint，`exists` / `key_fingerprint` 只讀屬性、不取回密碼。
-  - 更換 key：Apple 端 `store` 採「先刪除、再新增」，因為 `SecItemUpdate` 原地更新不保證換掉舊的 access control；代價是新增失敗時舊 key 也已刪除，不是原子操作。Windows 端 `CredWriteW` 直接覆寫同一 target。是否改為原地更新：待確認（0008 未決定）。
-  - 未簽章的 binary（`keepsay-cli`、`cargo test`）寫入 DP keychain 會得到 `errSecMissingEntitlement`（-34018），目前對應為 `CoreError::Unsupported`，只記 OSStatus 數字；不退回 file-based keychain、不寫檔、不改用環境變數。0008 建議新增專用 variant（例如 `VaultNotEntitled`）讓 UI 提示「此 binary 未簽章」：待確認（由整合階段決定）。
+  - 更換 key（v0.4 變更，見 docs/changes/0014-m1-integration.md）：Apple 端先以 `anthropic.pending` account 新增新 key，成功後刪除舊項目，再以 `SecItemUpdate`（只改 account）把 pending 改名為正式項目；任一步失敗時舊 key 保留，殘留的 pending 項目在下次 store 時收拾。Windows 端 `CredWriteW` 一次覆寫同一 target，本身即原子。
+  - 未簽章的 binary（`keepsay-cli`、`cargo test`）寫入 DP keychain 會得到 `errSecMissingEntitlement`（-34018），對應為 `CoreError::VaultNotEntitled`（v0.4 變更，見 docs/changes/0014-m1-integration.md），UI 據此提示「此 binary 未簽章」；不退回 file-based keychain、不寫檔、不改用環境變數。
   - 格式檢查（`check_format`）：`sk-ant-` 前綴、20–512 bytes、只允許 ASCII 英數與 `-`、`_`；三個 backend 的 `store` 都再檢查一次。`store_key` 流程為格式檢查 → `verify_key` → 存入 → 回傳 fingerprint，任一步失敗都不動已存的 key。
   - 「開啟生物辨識時快取 10 分鐘」尚未實作；目前一律不快取。
 - 駐留策略：
