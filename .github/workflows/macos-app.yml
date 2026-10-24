@@ -1,0 +1,134 @@
+name: macOS app
+
+# M2 (docs/changes/0015): Swift packages under apple/, the THREAT_MODEL T7
+# scan of the fn event tap, an ad-hoc signed Keepsay.app artifact, and the
+# keepsay-core XCFramework for macOS + iOS once core exports its UniFFI API.
+# PROPOSAL §9: read-only token, no secrets, actions pinned to commit SHAs.
+
+on:
+  pull_request:
+    paths:
+      - "apple/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/macos-app.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apple/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/macos-app.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-app-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fn-tap-scan:
+    # THREAT_MODEL T7: the active CGEventTap is one file that reads only the
+    # Z keycode and fn / Shift and touches no file, network, pasteboard or
+    # logging API.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: apple/scripts/check-fn-tap.sh
+
+  swift:
+    # Builds and tests the Swift packages without the Rust core
+    # (UnavailableCore), then packages an ad-hoc signed Keepsay.app.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: xcodebuild -version && swift --version
+      - name: KeepsayKit tests
+        run: swift test --package-path apple/KeepsayKit
+      - name: KeepsayKit builds for iOS
+        run: |
+          xcodebuild build -quiet -scheme KeepsayKit -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/dd-ios"
+        working-directory: apple/KeepsayKit
+      - name: KeepsayMac tests
+        run: swift test --package-path apple/KeepsayMac
+      - name: Package Keepsay.app (ad-hoc, Hardened Runtime)
+        run: apple/scripts/build-mac-app.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Keepsay-macOS-adhoc-nocore
+          path: apple/build/Keepsay-macOS.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  core-xcframework:
+    # Needs core/src/ffi.rs to export the UniFFI API (US-M1-22). Until the
+    # core calls `uniffi::setup_scaffolding!`, this job only reports a skip.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Does core export UniFFI?
+        id: ffi
+        run: |
+          if grep -rq 'setup_scaffolding' core/src; then
+            echo "ready=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "::notice::core has no UniFFI scaffolding yet; skipping XCFramework build"
+            echo "ready=false" >>"$GITHUB_OUTPUT"
+          fi
+      - if: steps.ffi.outputs.ready == 'true'
+        run: rustup toolchain install
+      - name: Install uniffi-bindgen-swift (build tool, same version as Cargo.lock)
+        if: steps.ffi.outputs.ready == 'true'
+        run: |
+          v="$(awk '/^name = "uniffi"$/{getline; sub(/version = /,""); gsub(/"/,""); print; exit}' Cargo.lock)"
+          test -n "$v"
+          cargo install --locked "uniffi@$v" --features cli --bin uniffi-bindgen-swift
+      - name: Build keepsay-core XCFramework (macOS, iOS, iOS Simulator)
+        if: steps.ffi.outputs.ready == 'true'
+        run: apple/scripts/build-core.sh
+      - name: KeepsayKit tests with core linked
+        if: steps.ffi.outputs.ready == 'true'
+        run: swift test --package-path apple/KeepsayKit
+      - name: KeepsayKit with core builds for iOS
+        if: steps.ffi.outputs.ready == 'true'
+        run: |
+          xcodebuild build -quiet -scheme KeepsayKit -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/dd-ios"
+        working-directory: apple/KeepsayKit
+      - name: Package Keepsay.app with core (ad-hoc)
+        if: steps.ffi.outputs.ready == 'true'
+        run: apple/scripts/build-mac-app.sh
+      - name: Zip XCFramework
+        if: steps.ffi.outputs.ready == 'true'
+        run: cd apple/build/core && ditto -c -k --keepParent KeepsayCoreFFI.xcframework KeepsayCoreFFI.xcframework.zip
+      - if: steps.ffi.outputs.ready == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: KeepsayCoreFFI-xcframework
+          path: |
+            apple/build/core/KeepsayCoreFFI.xcframework.zip
+            apple/build/core/bindings/keepsay_core.swift
+          if-no-files-found: error
+          retention-days: 14
+      - if: steps.ffi.outputs.ready == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Keepsay-macOS-adhoc
+          path: apple/build/Keepsay-macOS.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Developer ID release entitlements (Hardened Runtime), docs/changes/0015.
+  - audio-input: the microphone under Hardened Runtime.
+  - keychain-access-groups: the data protection keychain used by core's
+    vault (docs/changes/0008). Restricted entitlement: needs a provisioning
+    profile; __TEAM_ID__ is substituted at signing time (PROPOSAL §16 item 1).
+  - No App Sandbox yet: V2 (AX insertion / CGEvent paste under the sandbox)
+    is pending a real-Mac test. Without the sandbox no network entitlement
+    exists to grant; egress is restricted in code (INV-3, INV-7).
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>__TEAM_ID__.dev.rightson.keepsay</string>
+	</array>
+</dict>
+</plist>
