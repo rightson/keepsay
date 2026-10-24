@@ -158,11 +158,11 @@
 
 **US-M1-16** 身為使用者，我想要自訂詞彙表同時注入 STT initial prompt 與潤稿 system prompt，以便專有名詞拼對（FR-7）。
 - 驗收：① 兩處注入點有單元測試（只斷言結構與長度，不斷言詞彙表內容）② 詞彙表不出現在 log 或錯誤訊息
-- 狀態：🚧 工作流 B（prompt）、E（STT）｜ 相依：US-M1-09、US-M1-17
+- 狀態：🚧 工作流 B（prompt）、E（STT ✅：`stt::initial_prompt`，見 [0010](../changes/0010-stt-cli.md)）｜ 相依：US-M1-09、US-M1-17
 
 **US-M1-17** 身為使用者，我想要 whisper-rs 在本機辨識台灣繁中與中英夾雜，以便語音不離開裝置（FR-3、§6.7）。
 - 驗收：① `stt/whisper.rs` 實作 `SttEngine`，Apple 走 Metal ② 繁中 initial prompt ③ 樣本 wav 的辨識測試（可標 `#[ignore]` 需模型檔，CI 另行處理）
-- 狀態：🚧 工作流 E ｜ 相依：US-M1-18 ｜ feature `whisper`（core 預設關、CLI 預設開）
+- 狀態：✅ 工作流 E，見 [0010](../changes/0010-stt-cli.md)（③ `core/tests/stt_whisper.rs`，設 `KEEPSAY_TEST_WHISPER_MODEL` 才跑；Metal 尚未在 Apple 實機驗證）｜ 相依：US-M1-18 ｜ feature `whisper`（core 預設關、CLI 預設開）
 
 **US-M1-18** 身為維護者，我想要 `models/manifest.json` 填入 small 與 large-v3-turbo 的固定 revision URL 與親自計算的 SHA-256，以便下載可驗證（INV-7）。
 - 驗收：① 每筆含 id、url、revision、sha256、size、license ② 雜湊由維護者下載後計算，PR 註明方法
@@ -186,7 +186,7 @@
 
 **US-M1-23** 身為貢獻者，我想要 `keepsay-cli <file.wav> [--mode] [--translate]`，以便不開 App 就能測整條管線（§13 M1）。
 - 驗收：① wav → 逐字稿 → 潤稿 / 潤稿並翻譯 ② 輸出只到 stdout，不寫檔、不記 log 內容 ③ key 經由 vault 取得，不接受命令列參數或環境變數
-- 狀態：🚧 工作流 E ｜ 相依：US-M1-13、17、D-3 ✅（WAV 自行實作）
+- 狀態：🚧 CLI 完成（[0010](../changes/0010-stt-cli.md)），polish / key / budget / models 路徑待各工作流合併後整合驗證 ｜ 相依：US-M1-13、17、D-3 ✅（WAV 自行實作）
 
 **US-M1-24** 身為安全稽核者，我想要匯入可信組織的 cargo-vet 稽核並逐步消化 exemptions，以便新增的 M1 依賴有人審過（INV-9）。
 - 驗收：① 由人決定要信任的來源（mozilla、google、bytecode-alliance…）② exemptions 數量在本 PR 前後列出 ③ 不由 agent 執行 certify / trust
@@ -194,7 +194,7 @@
 
 **US-M1-25** 身為安全稽核者，我想要自動檢查音訊與逐字稿不落地，以便 INV-5 不只靠 review。
 - 驗收：① STT 與 polish 路徑跑完後暫存與設定目錄無新檔（併入金絲雀掃描）② `stt/`、`polish/` 不使用 `std::fs` 寫入（文字掃描測試，比照 `downloader.rs`）
-- 狀態：🚧 工作流 E ｜ 相依：US-M1-17、US-M1-21
+- 狀態：🚧 ② ✅ `core/tests/no_disk_writes.rs`；① 待整合階段併入金絲雀（CLI 端已有 `cli/tests/cli.rs` 檢查資料目錄無新檔）｜ 相依：US-M1-17、US-M1-21
 
 **US-M1-26** 身為維護者，我想要完成 V7 spike（OpenCC Rust 實作與依賴成本），以便決定 raw 模式的簡繁問題是否要引入新依賴。
 - 驗收：① 以 M1-17 的樣本量化簡體出現率 ② §15 V7 回填，需依賴時提 D-5
