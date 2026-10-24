@@ -48,6 +48,5 @@ Voice dictation with local STT and optional Claude polish/translate using the us
 - `test-endpoint` is the only way to point `AnthropicClient` anywhere else. A release build that enables it hits `compile_error!`, so `cargo test --release --all-features` fails by design.
 - `core/tests/downloader.rs` text-scans `src/downloader.rs` for `vault`, `secrecy`, `SecretString`, `AnthropicClient`, and `api::`. Do not write those words in non-comment code there.
 - `validate_base_url` is an exact string match on purpose. Do not "improve" it with URL parsing.
-- `LICENSE` is GPL-3.0 but ADR-8 says Apache-2.0. Do not change either until the human decides (§16 item 7).
-- The default hotkeys (Right Alt / fn+Z) cannot be registered with RegisterHotKey or Carbon hotkeys. Do not implement a keyboard hook or event tap before V8 and V9 are decided.
+- Hotkeys (V8/V9 decided, docs/changes/0004): Windows uses RegisterHotKey only (Alt+Shift+Z / Alt+Shift+X); do not add a keyboard hook or Raw Input. macOS fn+Z / fn+Shift+Z uses one active CGEventTap in a single isolated file whose callback reads only the Z keycode and the fn/Shift flags and stores nothing; Carbon ⌥Space / ⌥⇧Space is the fallback. Right Alt is deferred to v1.1+.
 - Model IDs and the `anthropic-version` header are 【待驗證 V4】. Check them against official docs before you rely on them.

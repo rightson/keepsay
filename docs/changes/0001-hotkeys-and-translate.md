@@ -1,6 +1,6 @@
 # 0001 — 預設快捷鍵與「潤飾並翻譯」
 
-- Status：Accepted（功能與預設組合）／Proposed（實作方式：V8、V9 待決定）
+- Status：Accepted（功能）；預設組合與實作方式由 0004 決定（Windows 改為 Alt + Shift + Z / X，macOS 保留 fn + Z / fn + Shift + Z）
 - Date：2026-10-24
 
 ## Context

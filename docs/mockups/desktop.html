@@ -451,7 +451,7 @@ details.guide b { color: var(--text); font-weight: 600; }
     ],
     mic: true, ax: false, macEdit: false
   };
-  var SHORT = { mac: '⌥Space', win: 'Ctrl+Alt+Space' };
+  var SHORT = { mac: 'fn Z', win: 'Alt+Shift+Z' };
   var RAW = '明天下午三點跟 kevin 開會 討論 keep say 的 ios 鍵盤擴充 嗯 記得先準備 test flight 的版本';
   var POL = '明天下午三點跟 Kevin 開會，討論 keepsay 的 iOS 鍵盤擴充，記得先準備 TestFlight 的版本。';
   function modeName(m) { return MODES.filter(function (x) { return x[0] === m; })[0][1]; }
@@ -593,7 +593,7 @@ details.guide b { color: var(--text); font-weight: 600; }
   function macPane(id) {
     if (id === 'general') return '' +
       row('預設模式', seg('data-setmode') + '<div class="help">' + MODE_DESC[S.mode] + '</div>') +
-      row('快捷鍵', '<span class="keycap">⌥ Space</span> <button class="btn" style="margin-left:6px">錄製新快捷鍵</button>') +
+      row('快捷鍵', '<span class="keycap">fn Z</span> 潤飾　<span class="keycap">fn ⇧ Z</span> 潤飾並翻譯 <button class="btn" style="margin-left:6px">錄製新快捷鍵</button>') +
       row('錄音方式', radio('toggle', true, '按一下開始，再按一下停止') + radio('toggle', false, '按住說話，放開停止')) +
       '<div class="hr"></div>' +
       row('登入時啟動', '<button class="tgl on" data-tgl></button>');
@@ -658,7 +658,7 @@ details.guide b { color: var(--text); font-weight: 600; }
     var name = PANES.filter(function (x) { return x[0] === id; })[0][1];
     var h = '<h3>' + name + (id === 'key' ? '' : '') + '</h3>';
     if (id === 'general') h += card('預設模式', MODE_DESC[S.mode], seg('data-setmode')) +
-      card('快捷鍵', '開始／停止錄音', '<span class="keycap">Ctrl + Alt + Space</span>') +
+      card('快捷鍵', '潤飾／潤飾並翻譯', '<span class="keycap">Alt + Shift + Z</span> <span class="keycap">Alt + Shift + X</span>') +
       cardCol('錄音方式', radio('toggle', true, '按一下開始，再按一下停止') + radio('toggle', false, '按住說話，放開停止')) +
       card('登入時啟動', '', '<button class="tgl on" data-tgl></button>');
     if (id === 'key') {

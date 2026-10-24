@@ -12,8 +12,8 @@ ignore = []
 
 [licenses]
 version = 2
-# Permissive licenses only, so dependencies stay compatible whichever project
-# license is chosen (GPL-3.0 LICENSE vs. ADR-8 Apache-2.0; PROPOSAL §16 item 7).
+# Permissive licenses only, all compatible with the project's Apache-2.0
+# license (ADR-8).
 # Workspace crates are publish = false and skipped via [licenses.private].
 allow = [
     "Apache-2.0",

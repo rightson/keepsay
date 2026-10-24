@@ -1,6 +1,6 @@
 # 0002 — 名稱可用性初查
 
-- Status：Proposed（名稱最終決定待使用者）
+- Status：Superseded by 0004（保留 keepsay，網域 keepsay.rightson.dev，識別字 `dev.rightson.keepsay.*`）
 - Date：2026-10-24
 
 ## Context
