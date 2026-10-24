@@ -2,6 +2,7 @@
 
 Voice dictation with local STT and optional Claude polish/translate using the user's own API key. The product is the security model: the key must be very hard to steal, and a leak must cost a bounded amount.
 
+- Roadmap and progress: `docs/specs/ROADMAP.md` (user stories US-M<n>-NN, status, open decisions)
 - Spec: @docs/specs/PROPOSAL.md (INV-* in §3, milestones in §13, dependency whitelist in §14, open questions in §15, human-only tasks in §16)
 - Threat model: @docs/specs/THREAT_MODEL.md
 - Decision log: `docs/changes/NNNN-slug.md` (format in docs/changes/README.md)
@@ -28,6 +29,7 @@ Voice dictation with local STT and optional Claude polish/translate using the us
 
 ## Workflow
 
+0. Pick work from docs/specs/ROADMAP.md; update story status in the same PR.
 1. Explore first. Read the relevant spec section and the existing module before you write anything.
 2. Plan. For each milestone or multi-file change, write out the plan before you code.
 3. Implement in small commits. Keep the module layout from PROPOSAL §5.2.
