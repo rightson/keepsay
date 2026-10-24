@@ -150,11 +150,11 @@
 
 **US-M1-14** 身為使用者，我想要依 API usage 累計 token、可編輯價目表、月軟 / 硬上限，以便費用可控（FR-6、§6.8）。
 - 驗收：① budget.json 帶 schema version，非機密 ② 硬上限時 `needs_api` 請求改走 raw ③ 每月 1 日歸零（單元測試注入時間）
-- 狀態：🚧 工作流 D ｜ 相依：US-M1-15
+- 狀態：✅ 工作流 D（待整合）｜ 相依：US-M1-15 ｜ 見 [0009](../changes/0009-models-budget-config.md)
 
 **US-M1-15** 身為使用者，我想要非機密設定以 JSON 存在 App Support 目錄並帶 schema version，以便設定可攜且不含 key（§10、INV-1）。
 - 驗收：① 涵蓋模式、快捷鍵、目標語言、模型、詞彙表、價目表、預算、proxy ② 讀寫測試確認檔案不含金絲雀
-- 狀態：🚧 工作流 D ｜ 相依：D-3 ✅（路徑由呼叫端傳入，見 [0005](../changes/0005-m1-foundation.md)）
+- 狀態：✅ 工作流 D（待整合）｜ 相依：D-3 ✅（路徑由呼叫端傳入，見 [0005](../changes/0005-m1-foundation.md)）｜ 見 [0009](../changes/0009-models-budget-config.md)
 
 **US-M1-16** 身為使用者，我想要自訂詞彙表同時注入 STT initial prompt 與潤稿 system prompt，以便專有名詞拼對（FR-7）。
 - 驗收：① 兩處注入點有單元測試（只斷言結構與長度，不斷言詞彙表內容）② 詞彙表不出現在 log 或錯誤訊息
@@ -166,11 +166,11 @@
 
 **US-M1-18** 身為維護者，我想要 `models/manifest.json` 填入 small 與 large-v3-turbo 的固定 revision URL 與親自計算的 SHA-256，以便下載可驗證（INV-7）。
 - 驗收：① 每筆含 id、url、revision、sha256、size、license ② 雜湊由維護者下載後計算，PR 註明方法
-- 狀態：⬜ 🧑 ｜ 相依：— ｜ 檔案改為 `models/manifest.json`（[0005](../changes/0005-m1-foundation.md)），雜湊仍需維護者親自計算
+- 狀態：🚧 🧑 ｜ 相依：— ｜ base、small、large-v3-turbo 已填入（釘 revision `5359861c`），SHA-256 由 agent 下載計算並與 HF LFS oid 比對一致；待維護者在自己的機器複核（[0009](../changes/0009-models-budget-config.md)）
 
 **US-M1-19** 身為安全稽核者，我想要 `ModelDownloader` 只抓 manifest 的 URL、驗證 SHA-256、支援手動匯入，以便下載器拿不到 key 也收不到被換掉的檔（INV-7、§8）。
 - 驗收：① `downloader.rs` 的 checksum 測試解除 ignore ② 另一個 reqwest Client，無 redirect 到 manifest 外的 host ③ `downloader.rs` 文字掃描仍通過 ④ 超過 size 中止
-- 狀態：🚧 工作流 D ｜ 相依：US-M1-18、D-3 ✅（manifest 改 JSON，serde_json 解析）
+- 狀態：✅ 工作流 D（待整合）｜ 相依：US-M1-18、D-3 ✅ ｜ redirect 手動跟隨、逐跳檢查 `redirect_hosts`，見 [0009](../changes/0009-models-budget-config.md)
 
 **US-M1-20** 身為安全稽核者，我想要 tracing 只記事件、長度與耗時，panic hook 不記 payload，以便 log 與 crash 不洩漏（§6.9、INV-6）。
 - 驗收：① 自訂 panic hook 只記位置 ② 測試以 tracing-subscriber 擷取輸出 ③ 無任何遠端 sink
