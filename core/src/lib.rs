@@ -8,10 +8,13 @@
 //! - INV-4: [`api::MessagesRequest`] has no tool fields at all.
 //! - INV-7: [`downloader`] never touches [`vault`].
 //!
-//! M0 status: types and seams only; behaviour lands in M1.
+//! M1 status: shared types and signatures are fixed (docs/changes/0005);
+//! module bodies are implemented by parallel workstreams.
 
 #[cfg(all(feature = "test-endpoint", not(debug_assertions)))]
 compile_error!("feature `test-endpoint` must never be enabled in release builds (INV-3)");
+#[cfg(all(feature = "test-support", not(debug_assertions)))]
+compile_error!("feature `test-support` must never be enabled in release builds (INV-1, INV-2)");
 
 pub mod api;
 pub mod budget;
@@ -23,3 +26,7 @@ pub mod stt;
 pub mod vault;
 
 pub use api::error::CoreError;
+pub use budget::{BudgetStatus, Usage};
+pub use polish::{FallbackReason, Mode, PolishOptions, PolishResult, TargetLang};
+pub use stt::{SttEngine, SttOptions};
+pub use vault::{Fingerprint, KeyVault};

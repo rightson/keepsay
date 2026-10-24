@@ -1,4 +1,6 @@
-//! In-memory vault for unit tests only.
+//! In-memory vault for unit tests and, via the `test-support` feature,
+//! integration tests. Never compiled into a release build (lib.rs refuses
+//! `test-support` there).
 
 use std::sync::Mutex;
 
@@ -14,19 +16,19 @@ pub struct MockVault {
 
 impl KeyVault for MockVault {
     fn store(&self, key: SecretString) -> Result<(), CoreError> {
-        *self.slot.lock().map_err(|_| CoreError::Vault)? = Some(key);
+        *self.slot.lock().map_err(|_| CoreError::VaultUnavailable)? = Some(key);
         Ok(())
     }
 
     fn load(&self) -> Result<SecretString, CoreError> {
-        let slot = self.slot.lock().map_err(|_| CoreError::Vault)?;
+        let slot = self.slot.lock().map_err(|_| CoreError::VaultUnavailable)?;
         slot.as_ref()
             .map(|k| SecretString::from(k.expose_secret()))
-            .ok_or(CoreError::NoKey)
+            .ok_or(CoreError::KeyNotFound)
     }
 
     fn delete(&self) -> Result<(), CoreError> {
-        *self.slot.lock().map_err(|_| CoreError::Vault)? = None;
+        *self.slot.lock().map_err(|_| CoreError::VaultUnavailable)? = None;
         Ok(())
     }
 
@@ -48,6 +50,6 @@ mod tests {
         assert!(v.exists());
         assert_eq!(v.load().unwrap().expose_secret(), "sk-ant-test-0123456789");
         v.delete().unwrap();
-        assert!(matches!(v.load(), Err(CoreError::NoKey)));
+        assert!(matches!(v.load(), Err(CoreError::KeyNotFound)));
     }
 }

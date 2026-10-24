@@ -5,4 +5,4 @@ pub mod error;
 pub mod types;
 
 pub use client::{AnthropicClient, BASE_URL};
-pub use types::{Message, MessagesRequest, Role};
+pub use types::{ContentBlock, Message, MessagesRequest, MessagesResponse, Role};

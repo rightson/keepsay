@@ -2,6 +2,23 @@
 //! content-unit counter for translation is defined here so the spec has a
 //! concrete reference implementation.
 
+use super::modes::TargetLang;
+use crate::CoreError;
+
+/// Check model `output` against the raw `input`. Returns the output with any
+/// known preamble stripped, or `CoreError::GuardRejected`. With
+/// `translate_to` set, the translation rules apply; glossary entries and
+/// URLs are excluded from the target-script ratio.
+pub fn check(
+    input: &str,
+    output: &str,
+    translate_to: Option<TargetLang>,
+    glossary: &[String],
+) -> Result<String, CoreError> {
+    let _ = (input, output, translate_to, glossary);
+    todo!("M1: polish — guard rules")
+}
+
 /// Content units = CJK characters (incl. kana) + non-CJK words. Punctuation
 /// and whitespace do not count.
 pub fn content_units(text: &str) -> usize {

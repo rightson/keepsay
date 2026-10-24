@@ -1,7 +1,22 @@
 //! Prompt assembly. The transcript is data, wrapped in `<transcript>` tags.
 
+use super::modes::{Mode, TargetLang};
+
 const OPEN: &str = "<transcript";
 const CLOSE: &str = "</transcript";
+
+/// System prompt for `mode` (§6.5), or the translation variant when
+/// `translate_to` is set. Not called for `Mode::Raw` without translation.
+pub fn system_prompt(mode: Mode, translate_to: Option<TargetLang>, glossary: &[String]) -> String {
+    let _ = (mode, translate_to, glossary);
+    todo!("M1: polish — system prompts")
+}
+
+/// Rough input token estimate used for `max_tokens` (§6.4).
+pub fn estimate_tokens(text: &str) -> u32 {
+    let _ = text;
+    todo!("M1: polish — token estimate")
+}
 
 /// Remove anything that could open or close the transcript tag early.
 pub fn sanitize_transcript(transcript: &str) -> String {
