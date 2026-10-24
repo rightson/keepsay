@@ -1,0 +1,20 @@
+{
+  "identifier": "settings",
+  "description": "Settings window: keepsay's own commands only. No core:* or plugin permissions (docs/changes/0016).",
+  "local": true,
+  "windows": ["settings"],
+  "permissions": [
+    "allow-get-settings",
+    "allow-save-settings",
+    "allow-key-status",
+    "allow-enter-key",
+    "allow-delete-key",
+    "allow-budget-status",
+    "allow-list-models",
+    "allow-download-model",
+    "allow-verify-model",
+    "allow-model-progress",
+    "allow-hotkey-status",
+    "allow-open-mic-settings"
+  ]
+}

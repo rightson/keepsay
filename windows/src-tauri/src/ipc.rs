@@ -44,6 +44,8 @@ pub fn core_error_code(e: CoreError) -> &'static str {
         CoreError::KeyFormat => "key_format",
         CoreError::KeyNotFound => "key_not_found",
         CoreError::VaultUnavailable => "vault_unavailable",
+        CoreError::VaultNotEntitled => "vault_not_entitled",
+        CoreError::NotInitialized => "not_initialized",
         CoreError::DisallowedHost => "disallowed_host",
         CoreError::Network => "network",
         CoreError::Timeout => "timeout",

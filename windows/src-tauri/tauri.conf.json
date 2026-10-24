@@ -1,0 +1,32 @@
+{
+  "productName": "keepsay",
+  "version": "0.0.0",
+  "identifier": "dev.rightson.keepsay",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost",
+      "freezePrototype": true,
+      "capabilities": ["settings", "overlay"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "keepsay",
+    "copyright": "Apache-2.0",
+    "license": "Apache-2.0",
+    "shortDescription": "Voice dictation with local speech recognition",
+    "icon": ["icons/icon.ico"],
+    "windows": {
+      "webviewInstallMode": { "type": "skip" },
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

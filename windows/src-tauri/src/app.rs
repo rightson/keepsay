@@ -154,17 +154,22 @@ impl Shared {
         })
     }
 
+    /// Key state for the UI: existence and fingerprint only (INV-2). Uses
+    /// `vault::stored_fingerprint`, never `KeyVault::load` (0014).
     pub fn key_view(&self) -> KeyView {
-        match self.vault.as_deref() {
-            Some(v) => {
-                let fp = vault::key_fingerprint(v);
-                KeyView {
-                    has_key: fp.is_some() || vault::has_key(v),
-                    fingerprint: fp.map(String::from),
-                }
-            }
-            None => KeyView {
+        let Some(v) = self.vault.as_deref() else {
+            return KeyView {
                 has_key: false,
+                fingerprint: None,
+            };
+        };
+        match vault::stored_fingerprint(v) {
+            Ok(fp) => KeyView {
+                has_key: fp.is_some(),
+                fingerprint: fp.map(String::from),
+            },
+            Err(_) => KeyView {
+                has_key: vault::has_key(v),
                 fingerprint: None,
             },
         }
@@ -217,7 +222,8 @@ pub fn run() {
         .with_writer(std::io::stderr)
         .with_target(false)
         .init();
-    install_panic_hook();
+    // §6.9: location only, never the payload (core, 0014).
+    keepsay_core::panic_hook::install();
 
     let shared = match Shared::load() {
         Ok(s) => Arc::new(s),
@@ -267,15 +273,6 @@ pub fn run() {
             api.prevent_exit();
         }
     });
-}
-
-/// §6.9: record where a panic happened, never its payload (it could hold
-/// user content).
-fn install_panic_hook() {
-    std::panic::set_hook(Box::new(|info| match info.location() {
-        Some(loc) => tracing::error!(file = loc.file(), line = loc.line(), "panic"),
-        None => tracing::error!("panic"),
-    }));
 }
 
 fn on_shortcut(app: &AppHandle, shortcut: &Shortcut) {

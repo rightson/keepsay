@@ -1,0 +1,31 @@
+/* Tokens shared by the settings page and the overlay (docs/mockups/desktop.html). */
+:root {
+  color-scheme: light dark;
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --text: #1b1b1f;
+  --muted: #5f6368;
+  --line: #e1e3e8;
+  --field: #ffffff;
+  --accent: #2f6be4;
+  --accent-ink: #ffffff;
+  --warn: #b25b00;
+  --bad: #c42b1c;
+  --menu: rgba(249, 249, 251, 0.96);
+  font-family: "Segoe UI Variable", "Segoe UI", "Microsoft JhengHei", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f2024;
+    --card: #2a2b30;
+    --text: #f1f1f3;
+    --muted: #a3a6ad;
+    --line: #3a3c42;
+    --field: #2b2d32;
+    --accent: #5b8cf0;
+    --menu: rgba(44, 45, 50, 0.96);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+button, input, select { font: inherit; color: inherit; }

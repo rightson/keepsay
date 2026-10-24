@@ -1,0 +1,7 @@
+{
+  "identifier": "overlay",
+  "description": "Recording overlay: read its own state, nothing else (docs/changes/0016).",
+  "local": true,
+  "windows": ["overlay"],
+  "permissions": ["allow-overlay-state"]
+}
