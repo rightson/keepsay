@@ -1,0 +1,3 @@
+# Change records
+
+Each non-trivial decision or change of plan gets one file here, named `NNNN-slug.md` with a zero-padded number that never gets reused, for example `0004-guard-thresholds.md`. Each record has four sections. **Context** says what forced the decision. **Decision** says what we chose; when the choice is still open, it lists the options. **Consequences** covers trade-offs, follow-ups, and which spec sections changed. **Status** is one of Proposed, Accepted, Superseded by NNNN, or Rejected. The current state of the design lives in `docs/specs/`, and these records explain how it got there. When a record changes a spec, edit the spec in the same commit and mark the edited spot with `（vX.Y 變更，見 docs/changes/NNNN-…）`.
