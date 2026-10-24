@@ -5,7 +5,11 @@
 //! descriptions, HTTP status codes and `std::io::ErrorKind` are allowed.
 
 /// Every fallible core function returns this.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+///
+/// Crosses the FFI as a flat error (`uniffi(flat_error)`): the foreign side
+/// sees the variant and the fixed `Display` text, never any field.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error, uniffi::Error)]
+#[uniffi(flat_error)]
 pub enum CoreError {
     // --- key / vault ---
     /// 401 / 403 from the API. Never auto-delete the stored key (§6.3).
@@ -93,6 +97,9 @@ pub enum CoreError {
     /// The feature does not exist on this platform (e.g. no vault backend).
     #[error("not supported on this platform")]
     Unsupported,
+    /// An FFI function was called before `ffi::init` (docs/changes/0014).
+    #[error("core is not initialized")]
+    NotInitialized,
 }
 
 impl From<std::io::Error> for CoreError {

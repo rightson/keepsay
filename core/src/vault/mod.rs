@@ -126,7 +126,6 @@ impl Fingerprint {
 
     /// Accept a previously computed fingerprint read back from non-secret
     /// storage, only if it has exactly the `…` + 4 ASCII characters shape.
-    #[cfg_attr(not(target_vendor = "apple"), allow(dead_code))]
     pub(crate) fn from_stored(s: &str) -> Option<Self> {
         let tail = s.strip_prefix('…')?;
         let ok = tail.len() == 4

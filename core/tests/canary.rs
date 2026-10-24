@@ -186,6 +186,7 @@ const ALL_ERRORS: &[CoreError] = &[
     CoreError::Config,
     CoreError::Io(io::ErrorKind::NotFound),
     CoreError::Unsupported,
+    CoreError::NotInitialized,
 ];
 
 /// Exhaustive on purpose (no `_` arm): adding a `CoreError` variant fails to
@@ -216,9 +217,10 @@ fn variant_index(e: CoreError) -> usize {
         Config => 20,
         Io(_) => 21,
         Unsupported => 22,
+        NotInitialized => 23,
     }
 }
-const VARIANT_COUNT: usize = 23;
+const VARIANT_COUNT: usize = 24;
 
 #[test]
 fn all_errors_lists_every_variant() {

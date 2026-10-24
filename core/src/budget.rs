@@ -25,7 +25,7 @@ pub const BUDGET_SCHEMA_VERSION: u32 = 1;
 
 /// Token counts as reported by the API (`usage` in the messages response).
 /// Unknown fields such as cache counters are ignored.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, uniffi::Record)]
 pub struct Usage {
     pub input_tokens: u64,
     pub output_tokens: u64,
@@ -79,7 +79,7 @@ fn civil_from_days(z: i64) -> (i32, u8, u8) {
 }
 
 /// Snapshot for the UI and for the hard-limit check in `polish`.
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, uniffi::Record)]
 pub struct BudgetStatus {
     pub month_usage: Usage,
     pub estimated_usd: f64,
