@@ -102,7 +102,7 @@
 
 **US-M1-02** 身為維護者，我想要完成 V6 spike（security-framework 能否設 ThisDeviceOnly 與 SecAccessControl），以便決定 Apple vault 由 Rust 或 Swift 寫入。
 - 驗收：① §15 V6 回填 ② 若不可行，在 0005+ 記錄改由 Swift 寫入、Rust 讀取的方案
-- 狀態：🚧 工作流 C ｜ 相依：—
+- 狀態：🚧 工作流 C ｜ 相依：— ｜ 結論見 [0008](../changes/0008-vault.md)（可由 Rust 寫入；禁用 `set_access_control_options`），待整合階段搬入 §15；實機驗證屬 M2
 
 **US-M1-03** 身為安全稽核者，我想要 Win32 FFI 需要的 `unsafe` 有明確範圍，以便 Windows vault 能實作又不放寬整個 workspace。
 - 驗收：① docs/changes 記錄決策（例如只在 `core/src/vault/windows.rs` 以 `#[allow(unsafe_code)]` 開放，或改用安全封裝）② CLAUDE.md Code style 同步
@@ -110,15 +110,15 @@
 
 **US-M1-04** 身為使用者，我想要 key 存進 Keychain（ThisDeviceOnly、不同步、service `dev.rightson.keepsay.apikey`），以便 key 不落地明文、不進 iCloud（INV-1）。
 - 驗收：① `vault/apple.rs` 實作 `KeyVault` ② 屬性由 macOS 上的整合測試驗證 ③ 不設共享 access group（INV-10 前置）
-- 狀態：🚧 工作流 C ｜ 相依：US-M1-02 ｜ 骨架 `KeychainVault` 已在 [0005](../changes/0005-m1-foundation.md)
+- 狀態：🚧 工作流 C ｜ 相依：US-M1-02 ｜ 實作完成（[0008](../changes/0008-vault.md)）；`core/tests/vault_platform.rs` 在 macOS CI 只能驗證未簽章時乾淨回 `Unsupported`，完整屬性驗證待簽章 binary（M2）
 
 **US-M1-05** 身為使用者，我想要 Windows 上 key 存進 Credential Manager（GENERIC、LOCAL_MACHINE），以便 key 不隨漫遊設定檔同步（INV-1）。
 - 驗收：① `vault/windows.rs` 實作 `KeyVault`，target 依 D-6 定名 ② CredFree 前覆寫 buffer ③ Windows CI runner 上跑整合測試
-- 狀態：🚧 工作流 C ｜ 相依：US-M1-03 ✅、D-6 ✅（target `dev.rightson.keepsay/anthropic`）｜ 骨架 `CredManVault`、Windows CI runner（test-os）已在 [0005](../changes/0005-m1-foundation.md)
+- 狀態：🚧 工作流 C ｜ 相依：US-M1-03 ✅、D-6 ✅ ｜ 實作完成（[0008](../changes/0008-vault.md)），交叉編譯 clippy 通過；待 Windows CI 實跑 `core/tests/vault_platform.rs`
 
 **US-M1-06** 身為使用者，我想要 store / has / fingerprint / delete / verify 的 key 生命週期，以便驗證失敗的 key 不會被存下（FR-1）。
 - 驗收：① 格式檢查 → `GET /v1/models` → 存入，失敗不存 ② 401/403 回 `KeyInvalid` 且不自動刪除 ③ 只回 `vault::fingerprint`（INV-2）④ 預設不快取，用完 drop（§6.2）
-- 狀態：🚧 工作流 C ｜ 相依：US-M1-04/05、US-M1-07（`AnthropicClient::verify_key`）
+- 狀態：🚧 工作流 C ｜ 相依：US-M1-04/05、US-M1-07 ｜ vault 端完成：`vault::store_key(vault, key, verify)` 等（[0008](../changes/0008-vault.md)）；待 FFI（US-M1-22）以 `AnthropicClient::verify_key` 接上
 
 **US-M1-07** 身為安全稽核者，我想要 `AnthropicClient` 以 reqwest + rustls-platform-verifier、`redirect::Policy::none()`、`no_proxy()`、10s/30s 逾時實作，以便 key 只會送到 BASE_URL（INV-3）。
 - 驗收：① `egress.rs` 的 redirect 測試解除 ignore 並通過（第二台 mock 收不到 `x-api-key`）② 非白名單 host 建構失敗 ③ proxy 只能由設定明確開啟 ④ 只有此型別能附加 key（code review 清單）
@@ -178,7 +178,7 @@
 
 **US-M1-21** 身為安全稽核者，我想要金絲雀測試跑完所有正常與錯誤路徑並掃描 log、設定目錄、暫存目錄，以便 INV-1/2/6 有自動化證明（§11）。
 - 驗收：① `core/tests/canary.rs` 解除 ignore ② 金絲雀出現次數為 0 ③ 整合測試可用的 mock vault（目前 `mock.rs` 只在 `cfg(test)`，`tests/` 用不到，需改為 feature 或測試 helper）
-- 狀態：🚧 工作流 C（vault 部分）＋整合階段 ｜ 相依：US-M1-06、13、14、15、20 ｜ ③ 已完成：feature `test-support` 對整合測試開放 `MockVault`（[0005](../changes/0005-m1-foundation.md)）
+- 狀態：🚧 工作流 C（vault 部分 ✅）＋整合階段 ｜ 相依：US-M1-06、13、14、15、20 ｜ ① ② vault 路徑已解除 ignore 並通過，harness 供其他路徑加入（[0008](../changes/0008-vault.md)）；③ 已完成（[0005](../changes/0005-m1-foundation.md)）
 
 **US-M1-22** 身為安全稽核者，我想要 UniFFI 匯出 §6.1 介面，且沒有任何回傳 key 的函式，以便 Swift 只經手 key 一次（INV-2）。
 - 驗收：① `ffi.rs` 匯出 §6.1 全部函式（含 async `polish`）② 測試掃描匯出簽章，回傳型別不含 key ③ `store_key` 收下即轉 `SecretString`
