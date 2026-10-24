@@ -25,7 +25,7 @@ Voice dictation with local STT and optional Claude polish/translate using the us
 - NEVER print, log, or assert on a key, transcript, model output, or glossary. That covers tests, error messages, `Debug` impls, and comments. Log lengths and timings only.
 - NEVER add a function or IPC command that returns the key. Only `vault::fingerprint` (`…a1B2`) may leave the core.
 - NEVER add `tools`, `tool_choice`, or similar fields to `api::types`.
-- NEVER run `cargo vet certify`, `cargo vet trust`, or add exemptions to make vet pass. Auditing is a human decision.
+- NEVER run `cargo vet certify` or `cargo vet trust`, and never add cargo-vet exemptions on your own. Exemptions are added only through a human-approved `docs/changes/` record (see docs/changes/0011). Auditing is a human decision.
 
 ## Workflow
 

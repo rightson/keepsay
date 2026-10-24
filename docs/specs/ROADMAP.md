@@ -17,7 +17,7 @@
 | 里程碑 | 目標 | 狀態 | 故事完成 | 卡點 |
 |--------|------|------|----------|------|
 | M0 專案骨架 | repo、CI、INV 測試骨架 | ✅ | 10 / 10（100%） | — |
-| M1 core 與 CLI | §13 M1：vault、client、polish、guard、budget、STT、downloader、CLI | 🚧 | 1 / 26（4%） | V4、D-4 vet、D-10 uniffi |
+| M1 core 與 CLI | §13 M1：vault、client、polish、guard、budget、STT、downloader、CLI | 🚧 | 2 / 26（8%） | V4、D-10 uniffi |
 | M2 macOS | menu bar app 端到端 | ⬜ | 0 / 17（0%） | M1；§16-1 Apple 帳號 |
 | M3 Windows | Tauri tray app 端到端 | ⬜ | 0 / 13（0%） | M1；D-2；§16-2 簽章 |
 | M4a iOS 主 App | 錄音 → 潤稿 → 剪貼簿、App Intent | ⬜ | 0 / 6（0%） | M2（共用 KeepsayKit）；§16-1 |
@@ -63,7 +63,7 @@
 - 狀態：✅ ｜ 相依：—
 
 **US-M0-04** 身為安全稽核者，我想要 `cargo vet` 在 CI 執行，以便每個依賴版本都有稽核紀錄。
-- 驗收：① `supply-chain/` 已 init ② CI `vet` job 執行 `cargo vet --locked`（目前 15 個 exemptions，匯入外部稽核見 US-M1-24）
+- 驗收：① `supply-chain/` 已 init ② CI `vet` job 執行 `cargo vet --locked`（M0 時 15 個 exemptions；匯入外部稽核見 US-M1-24 / 0011）
 - 狀態：✅ ｜ 相依：—
 
 **US-M0-05** 身為安全稽核者，我想要 release 建置無法啟用 `test-endpoint`，以便 INV-3 的測試後門不會出貨。
@@ -190,7 +190,7 @@
 
 **US-M1-24** 身為安全稽核者，我想要匯入可信組織的 cargo-vet 稽核並逐步消化 exemptions，以便新增的 M1 依賴有人審過（INV-9）。
 - 驗收：① 由人決定要信任的來源（mozilla、google、bytecode-alliance…）② exemptions 數量在本 PR 前後列出 ③ 不由 agent 執行 certify / trust
-- 狀態：⬜ 🧑 ｜ 相依：D-4 ｜ 0005 後 `cargo vet --locked` 有 213 個未稽核依賴
+- 狀態：✅ ｜ 相依：D-4 ｜ 見 [0011](../changes/0011-cargo-vet-imports.md)：匯入 mozilla、google、bytecode-alliance、isrg、zcash、embark-studios；exemptions 15 → 176 筆（47 個 crate 由匯入完全涵蓋、18 個部分涵蓋、159 個 exemption）；`cargo vet --locked` 通過。後續逐步以稽核取代 exemption
 
 **US-M1-25** 身為安全稽核者，我想要自動檢查音訊與逐字稿不落地，以便 INV-5 不只靠 review。
 - 驗收：① STT 與 polish 路徑跑完後暫存與設定目錄無新檔（併入金絲雀掃描）② `stt/`、`polish/` 不使用 `std::fs` 寫入（文字掃描測試，比照 `downloader.rs`）
@@ -453,7 +453,7 @@
 | D-1 | Windows 預設快捷鍵確切組合（0004 定為 Alt+Shift+Z / Alt+Shift+X） | US-M3-04、README、mockup | ✅ 已決定；M3 手動測試需確認 Alt+Shift 不觸發輸入語言切換 |
 | D-2 | 放寬 `unsafe_code`：Windows vault（CredReadW）、SendInput、剪貼簿格式、IME 都需要 Win32 FFI | US-M1-03/05、M3 | 🚧 vault 已批准（0005，只限 `core/src/vault/windows.rs`）；M3 的 SendInput / 剪貼簿 / IME 仍需 🧑 |
 | D-3 | §14 白名單缺口：manifest 的 TOML 解析、CLI 的 wav 解碼、App Support 目錄定位（或自行實作） | US-M1-15/19/23 | ✅ 0005：manifest 改 JSON、WAV 自行實作、路徑由呼叫端傳入 |
-| D-4 | cargo-vet 要信任哪些組織的稽核 | US-M1-24 | 🧑 |
+| D-4 | cargo-vet 要信任哪些組織的稽核 | US-M1-24 | ✅ 0011：選項 (a)，匯入 registry 的知名組織稽核，其餘一次性 exemption |
 | D-5 | V7 結論後是否引入 OpenCC | US-BL-05 | 🧑（待 M1-26） |
 | D-6 | Windows CredMan target 是否也改為 `dev.rightson.keepsay.*` 風格（§6.2 仍為 `keepsay/anthropic`） | US-M1-05 | ✅ 0005：`dev.rightson.keepsay/anthropic` |
 | D-7 | 翻譯守門門檻校正結果是否接受 | US-M1-12 | 🧑（待語料） |
