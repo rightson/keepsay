@@ -32,15 +32,17 @@ mod apple {
     /// The data protection keychain needs the `keychain-access-groups`
     /// entitlement. An unsigned `cargo test` binary does not have it, so the
     /// only acceptable outcomes are full INV-1 attributes or a clean
-    /// `Unsupported` with nothing written anywhere (docs/changes/0008).
+    /// `VaultNotEntitled` with nothing written anywhere (docs/changes/0008).
     #[test]
     fn keychain_item_is_this_device_only_and_not_synced() {
         let v = KeychainVault::for_tests(&test_name(), VaultOptions::default());
         let key = fake_key("a1B2");
         match v.store(SecretString::from(key.expose_secret())) {
-            Err(CoreError::Unsupported) => {
-                // No silent fallback to the legacy file keychain.
+            Err(CoreError::VaultNotEntitled) => {
+                // No silent fallback to the legacy file keychain, and the
+                // pending item of the replace protocol is not left behind.
                 assert!(!v.exists());
+                assert!(!v.has_pending());
                 assert!(!v.exists_in_synced_store());
                 eprintln!("skipped: test binary lacks keychain-access-groups entitlement");
                 return;
@@ -65,12 +67,18 @@ mod apple {
                 key.expose_secret().len()
             );
 
-            // Replacing keeps the attributes (delete + add, not update).
+            assert!(!v.has_pending());
+
+            // Replacing writes a fresh item (add pending, delete old, rename),
+            // so the attributes are those of a new add, and nothing stays
+            // pending (docs/changes/0014).
             let key2 = fake_key("c3D4");
             v.store(SecretString::from(key2.expose_secret()))
                 .expect("replace");
             assert_eq!(v.key_fingerprint().expect("fp"), Some(fingerprint(&key2)));
             assert_eq!(v.inspect().expect("attributes").0.as_deref(), Some("aku"));
+            assert!(!v.has_pending());
+            assert!(!v.exists_in_synced_store());
         });
         v.delete().expect("cleanup");
         assert!(!v.exists());
@@ -87,7 +95,7 @@ mod apple {
         assert!(!v.exists());
         assert!(matches!(
             v.load(),
-            Err(CoreError::KeyNotFound) | Err(CoreError::Unsupported)
+            Err(CoreError::KeyNotFound) | Err(CoreError::VaultNotEntitled)
         ));
     }
 }

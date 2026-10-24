@@ -36,10 +36,6 @@ pub async fn polish(
     .await
 }
 
-/// Stop reasons that mean the model finished on its own. Anything else
-/// (`max_tokens`, `refusal`, unknown) is treated as a half-finished output.
-const COMPLETE_STOP_REASONS: &[&str] = &["end_turn", "stop_sequence"];
-
 /// The pipeline with the transport abstracted, so tests can substitute the
 /// API without a key or a network. `has_key` is `KeyVault::exists`.
 async fn run<F, Fut>(
@@ -92,10 +88,10 @@ where
     };
 
     let usage = Some(response.usage);
-    let complete = response
-        .stop_reason
-        .as_deref()
-        .is_none_or(|r| COMPLETE_STOP_REASONS.contains(&r));
+    // `end_turn` / `stop_sequence` only. `max_tokens` (truncated), `refusal`,
+    // a missing or unknown stop reason are half-finished outputs: raw
+    // instead (FR-8, docs/changes/0006).
+    let complete = response.is_complete();
     let checked = if complete {
         guard::check(transcript, &response.text(), translate, &opts.glossary)
     } else {

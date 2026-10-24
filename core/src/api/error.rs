@@ -1,14 +1,15 @@
 //! Error type shared by every module and across the FFI boundary.
 //!
-//! FROZEN during M1 parallel work (docs/changes/0005): add a variant only by
-//! coordinating with every workstream.
-//!
 //! Variants never carry the key, transcripts, model output, glossary, file
 //! paths, URLs, or upstream error messages (INV-2, §6.9). Only fixed
 //! descriptions, HTTP status codes and `std::io::ErrorKind` are allowed.
 
 /// Every fallible core function returns this.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+///
+/// Crosses the FFI as a flat error (`uniffi(flat_error)`): the foreign side
+/// sees the variant and the fixed `Display` text, never any field.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error, uniffi::Error)]
+#[uniffi(flat_error)]
 pub enum CoreError {
     // --- key / vault ---
     /// 401 / 403 from the API. Never auto-delete the stored key (§6.3).
@@ -23,6 +24,12 @@ pub enum CoreError {
     /// The OS secure storage refused or failed (Keychain / Credential Manager).
     #[error("secure storage is unavailable")]
     VaultUnavailable,
+    /// The binary is not signed with the entitlement the OS secure storage
+    /// requires (macOS data protection keychain: `keychain-access-groups`,
+    /// `errSecMissingEntitlement`). Typical for the unsigned dev CLI and
+    /// `cargo test`. Never answered with a weaker store (docs/changes/0008).
+    #[error("this build is not entitled to use secure storage (unsigned binary?)")]
+    VaultNotEntitled,
 
     // --- network / API ---
     /// A base URL or download URL that is not on the hardcoded allowlist.
@@ -90,6 +97,9 @@ pub enum CoreError {
     /// The feature does not exist on this platform (e.g. no vault backend).
     #[error("not supported on this platform")]
     Unsupported,
+    /// An FFI function was called before `ffi::init` (docs/changes/0014).
+    #[error("core is not initialized")]
+    NotInitialized,
 }
 
 impl From<std::io::Error> for CoreError {

@@ -12,7 +12,7 @@ use crate::CoreError;
 use crate::budget::Usage;
 
 /// `Raw` never calls the API.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, uniffi::Enum)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
     Raw,
@@ -23,7 +23,7 @@ pub enum Mode {
 }
 
 /// v1 translation targets (FR-8). Default suggestion is English.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, uniffi::Enum)]
 pub enum TargetLang {
     #[default]
     #[serde(rename = "en")]
@@ -45,7 +45,7 @@ impl TargetLang {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, uniffi::Record)]
 pub struct PolishOptions {
     pub mode: Mode,
     /// `None` = no translation.
@@ -71,7 +71,7 @@ impl fmt::Debug for PolishOptions {
 }
 
 /// Why `polish` returned the raw transcript instead of model output.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum FallbackReason {
     /// Translation requested but the API is not usable in the current state
     /// (raw mode, no key, offline, hard limit): FR-8 "翻譯需要 API".
@@ -109,7 +109,7 @@ impl FallbackReason {
 }
 
 /// Output of `polish`. `text` is user content: `Debug` prints its length.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, uniffi::Record)]
 pub struct PolishResult {
     pub text: String,
     pub fell_back_to_raw: bool,

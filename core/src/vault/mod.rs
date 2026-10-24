@@ -3,10 +3,13 @@
 //! Owner: workstream C (docs/changes/0005, 0008).
 //!
 //! Nothing in this module returns the key across FFI/IPC; callers outside the
-//! crate only ever see [`Fingerprint`]. Inside the crate, only
-//! `AnthropicClient` calls [`KeyVault::load`], with one exception kept inside
-//! this module: the default [`KeyVault::key_fingerprint`] loads the key to
-//! compute its last four characters and drops it immediately.
+//! crate only ever see [`Fingerprint`]. Only `AnthropicClient` calls
+//! [`KeyVault::load`], with one exception kept inside this module: the
+//! default [`KeyVault::key_fingerprint`] loads the key to compute its last
+//! four characters and drops it immediately. Callers that need the
+//! fingerprint use [`stored_fingerprint`] (or [`key_fingerprint`]) instead of
+//! `load`; `core/tests/no_key_load.rs` text-scans the repository for any
+//! other `.load()` call (INV-2, docs/changes/0014).
 //!
 //! Key lifecycle (FR-1, PROPOSAL §6.1): [`store_key`] → [`has_key`] /
 //! [`key_fingerprint`] → [`delete_key`]. The key is never cached: every
@@ -123,7 +126,6 @@ impl Fingerprint {
 
     /// Accept a previously computed fingerprint read back from non-secret
     /// storage, only if it has exactly the `…` + 4 ASCII characters shape.
-    #[cfg_attr(not(target_vendor = "apple"), allow(dead_code))]
     pub(crate) fn from_stored(s: &str) -> Option<Self> {
         let tail = s.strip_prefix('…')?;
         let ok = tail.len() == 4
@@ -197,6 +199,14 @@ pub fn has_key(vault: &dyn KeyVault) -> bool {
 /// biometric prompt) read as `None`; the UI then shows "no key" or retries.
 pub fn key_fingerprint(vault: &dyn KeyVault) -> Option<Fingerprint> {
     vault.key_fingerprint().ok().flatten()
+}
+
+/// The fingerprint of the stored key, `Ok(None)` when nothing is stored.
+/// Unlike [`key_fingerprint`], errors (locked Keychain, missing entitlement,
+/// cancelled prompt) are reported. This is what callers outside the vault
+/// use instead of [`KeyVault::load`].
+pub fn stored_fingerprint(vault: &dyn KeyVault) -> Result<Option<Fingerprint>, CoreError> {
+    vault.key_fingerprint()
 }
 
 /// Remove the stored key. Idempotent.
