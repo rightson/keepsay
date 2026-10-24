@@ -1,0 +1,26 @@
+[package]
+name = "keepsay-core"
+description = "Security-critical core of keepsay: key vault, the single Anthropic client, polish prompts and output guard."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+# Allows overriding the API base URL for tests (wiremock). Refused at compile
+# time in release builds; CI also checks no release artifact enables it.
+test-endpoint = []
+
+[dependencies]
+secrecy = "0.10.3"
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.21"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json = "1.0.154"

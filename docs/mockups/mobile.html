@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>keepsay iOS Mockup</title>
+<style>
+:root {
+  --bg: #eef0f3;
+  --chrome: #ffffff;
+  --chrome-line: #dfe2e7;
+  --screen: #f6f7f9;
+  --card: #ffffff;
+  --line: #e4e6ea;
+  --text: #16181c;
+  --muted: #6b717c;
+  --faint: #a2a7b0;
+  --accent: #2f6be4;
+  --accent-soft: #e6eefc;
+  --accent-ink: #ffffff;
+  --bezel: #1b1c1f;
+  --shadow: 0 30px 60px -20px rgba(20, 30, 50, .28);
+  --field: #f0f2f5;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1013; --chrome: #17181c; --chrome-line: #2a2c31; --screen: #000000;
+    --card: #1c1d21; --line: #2c2e33; --text: #f1f2f4; --muted: #9298a2; --faint: #61666f;
+    --accent: #5b8cf5; --accent-soft: #1c2a47; --accent-ink: #ffffff; --bezel: #2b2c30;
+    --shadow: 0 30px 60px -20px rgba(0,0,0,.7); --field: #26282d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1013; --chrome: #17181c; --chrome-line: #2a2c31; --screen: #000000;
+  --card: #1c1d21; --line: #2c2e33; --text: #f1f2f4; --muted: #9298a2; --faint: #61666f;
+  --accent: #5b8cf5; --accent-soft: #1c2a47; --accent-ink: #ffffff; --bezel: #2b2c30;
+  --shadow: 0 30px 60px -20px rgba(0,0,0,.7); --field: #26282d; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+input, textarea { font: inherit; color: inherit; }
+
+/* ---------- page chrome ---------- */
+.pagebar {
+  position: sticky; top: 0; z-index: 10; background: var(--chrome);
+  border-bottom: 1px solid var(--chrome-line); padding: 12px 16px;
+}
+.pagebar-top { display: flex; align-items: center; gap: 12px; max-width: 980px; margin: 0 auto; }
+.pagebar h1 { font-size: 15px; font-weight: 600; margin: 0; flex: 1; min-width: 0; }
+.pagebar h1 span { color: var(--muted); font-weight: 400; }
+.theme-btn {
+  border: 1px solid var(--chrome-line); background: transparent; border-radius: 999px;
+  padding: 5px 12px; font-size: 13px; white-space: nowrap;
+}
+.switcher { display: flex; flex-wrap: wrap; gap: 6px; max-width: 980px; margin: 10px auto 0; }
+.switcher button {
+  border: 1px solid var(--chrome-line); background: transparent; border-radius: 8px;
+  padding: 5px 10px; font-size: 13px; color: var(--muted);
+}
+.switcher button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.switcher label { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; padding: 0 4px; }
+
+.stage { display: flex; justify-content: center; padding: 28px 16px 24px; }
+.fit { position: relative; }
+.fit > .phone { transform-origin: top left; position: absolute; top: 0; left: 0; }
+.note { max-width: 560px; margin: 0 auto 40px; padding: 0 16px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+/* ---------- phone ---------- */
+.phone {
+  width: 390px; height: 844px; border-radius: 56px; background: var(--bezel);
+  padding: 11px; box-shadow: var(--shadow);
+}
+.screen-wrap {
+  position: relative; width: 100%; height: 100%; border-radius: 46px; overflow: hidden;
+  background: var(--screen);
+}
+.statusbar {
+  position: absolute; top: 0; left: 0; right: 0; height: 50px; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between; padding: 6px 30px 0 34px;
+  font-size: 15px; font-weight: 600; pointer-events: none;
+}
+.island { position: absolute; top: 11px; left: 50%; width: 110px; height: 32px; margin-left: -55px; background: #000; border-radius: 20px; z-index: 6; }
+.sb-icons { display: flex; gap: 6px; align-items: center; }
+.sb-icons i { display: block; background: var(--text); border-radius: 2px; }
+.home-ind { position: absolute; bottom: 8px; left: 50%; width: 134px; margin-left: -67px; height: 5px; border-radius: 3px; background: var(--text); opacity: .85; z-index: 5; }
+
+.screen { position: absolute; inset: 0; padding: 54px 0 28px; display: none; flex-direction: column; }
+.screen.on { display: flex; }
+.scroll { overflow-y: auto; flex: 1; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+
+.navbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px; min-height: 44px; }
+.navbar .title { font-size: 17px; font-weight: 600; }
+.navbar .wordmark { font-size: 17px; font-weight: 600; letter-spacing: -.2px; }
+.icon-btn { width: 44px; height: 44px; border-radius: 22px; border: 0; background: transparent; display: grid; place-items: center; color: var(--muted); }
+.icon-btn svg { width: 24px; height: 24px; }
+.link-btn { border: 0; background: none; color: var(--accent); font-size: 17px; padding: 8px 0; min-height: 44px; }
+
+.btn {
+  display: block; width: 100%; min-height: 52px; border-radius: 14px; border: 0;
+  font-size: 17px; font-weight: 600; background: var(--accent); color: var(--accent-ink);
+}
+.btn[disabled] { opacity: .4; cursor: default; }
+.btn.ghost { background: transparent; color: var(--accent); font-weight: 500; }
+.btn.soft { background: var(--accent-soft); color: var(--accent); }
+
+/* ---------- onboarding ---------- */
+.ob { padding: 20px 28px 0; display: flex; flex-direction: column; flex: 1; }
+.dots { display: flex; gap: 6px; justify-content: center; margin: 4px 0 24px; }
+.dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line); }
+.dots i.on { background: var(--accent); width: 18px; }
+.ob h2 { font-size: 28px; line-height: 1.25; margin: 0 0 8px; letter-spacing: -.3px; }
+.ob h2 .opt { font-size: 13px; font-weight: 600; color: var(--muted); background: var(--field); padding: 3px 8px; border-radius: 6px; vertical-align: 5px; margin-left: 4px; letter-spacing: 0; }
+.ob p.lead { color: var(--muted); font-size: 16px; line-height: 1.55; margin: 0 0 24px; }
+.field-label { font-size: 13px; color: var(--muted); margin: 0 0 6px 2px; }
+.secure {
+  display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 0 14px; min-height: 52px;
+}
+.secure svg { width: 18px; height: 18px; color: var(--faint); flex: none; }
+.secure input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 17px; letter-spacing: 2px; }
+.secure input::placeholder { letter-spacing: 0; color: var(--faint); }
+.hint { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 8px 2px 0; }
+details.guide { margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+details.guide summary { list-style: none; padding: 14px 16px; font-size: 15px; display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 48px; }
+details.guide summary::-webkit-details-marker { display: none; }
+details.guide summary .chev { margin-left: auto; transition: transform .2s; color: var(--faint); }
+details.guide[open] summary .chev { transform: rotate(90deg); }
+details.guide ol { margin: 0; padding: 0 16px 14px 36px; font-size: 14px; line-height: 1.65; color: var(--muted); }
+details.guide li { margin-bottom: 6px; }
+details.guide li b { color: var(--text); font-weight: 600; }
+.ob-actions { margin-top: auto; padding-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+.skip-sub { text-align: center; font-size: 12px; color: var(--faint); margin-top: -8px; }
+
+.model-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.model-card .row1 { display: flex; justify-content: space-between; align-items: baseline; }
+.model-card .name { font-size: 17px; font-weight: 600; }
+.model-card .size { color: var(--muted); font-size: 15px; }
+.model-card .desc { color: var(--muted); font-size: 14px; margin-top: 4px; line-height: 1.5; }
+.progress { height: 6px; border-radius: 3px; background: var(--field); overflow: hidden; margin-top: 14px; }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width .2s linear; }
+.pstat { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 18px; }
+
+/* ---------- home ---------- */
+.home-main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 0 24px; }
+.rec {
+  width: 188px; height: 188px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center; box-shadow: 0 18px 40px -14px color-mix(in srgb, var(--accent) 70%, transparent);
+  transition: transform .15s;
+}
+.rec:active { transform: scale(.96); }
+.rec svg { width: 64px; height: 64px; }
+.rec-label { font-size: 17px; color: var(--muted); margin-top: -8px; }
+.seg { display: flex; background: var(--field); border-radius: 12px; padding: 3px; width: 100%; max-width: 320px; }
+.seg button {
+  flex: 1; border: 0; background: transparent; border-radius: 9px; min-height: 40px; font-size: 15px; color: var(--muted);
+}
+.seg button.on { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.seg button[disabled] { opacity: .35; cursor: default; }
+.mode-desc { font-size: 13px; color: var(--faint); margin-top: -14px; text-align: center; min-height: 18px; }
+.budget-pill { font-size: 12px; color: var(--faint); text-align: center; padding-bottom: 14px; display: flex; gap: 6px; justify-content: center; align-items: center; }
+.budget-pill .mini { width: 36px; height: 4px; border-radius: 2px; background: var(--field); overflow: hidden; }
+.budget-pill .mini i { display: block; height: 100%; background: var(--muted); }
+
+/* ---------- recording ---------- */
+.center-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 0 28px; }
+.timer { font-size: 54px; font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+.meter { display: flex; gap: 5px; align-items: center; height: 64px; }
+.meter i { width: 5px; border-radius: 3px; background: var(--accent); height: 8px; transition: height .09s; }
+.rec.stop { background: var(--card); color: var(--accent); border: 2px solid var(--accent); box-shadow: none; width: 112px; height: 112px; }
+.rec.stop svg { width: 36px; height: 36px; }
+.chip { font-size: 13px; color: var(--muted); background: var(--field); padding: 5px 12px; border-radius: 999px; }
+.live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; background: var(--accent); margin-right: 6px; animation: blink 1.2s infinite; vertical-align: 1px; }
+@keyframes blink { 50% { opacity: .25; } }
+
+/* ---------- processing ---------- */
+.steps { display: flex; flex-direction: column; gap: 14px; width: 220px; }
+.step { display: flex; align-items: center; gap: 12px; font-size: 17px; color: var(--faint); }
+.step .ic { width: 26px; height: 26px; border-radius: 13px; border: 2px solid var(--line); display: grid; place-items: center; flex: none; }
+.step.active { color: var(--text); }
+.step.active .ic { border-color: var(--accent); border-top-color: transparent; animation: spin .8s linear infinite; }
+.step.done { color: var(--muted); }
+.step.done .ic { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.step.done .ic svg { width: 14px; height: 14px; }
+.step.skip { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.proc-note { font-size: 13px; color: var(--faint); text-align: center; line-height: 1.6; }
+
+/* ---------- done ---------- */
+.done-wrap { flex: 1; display: flex; flex-direction: column; padding: 12px 24px 12px; }
+.banner { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 16px; background: var(--accent-soft); }
+.banner .badge { width: 32px; height: 32px; border-radius: 16px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex: none; }
+.banner .badge svg { width: 18px; height: 18px; }
+.banner .t1 { font-size: 16px; font-weight: 600; }
+.banner .t2 { font-size: 13px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.banner.warn { background: var(--field); }
+.banner.warn .badge { background: var(--muted); }
+.result {
+  margin-top: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 18px; font-size: 18px; line-height: 1.7; flex: 1; max-height: 340px; overflow: auto;
+}
+.result-meta { font-size: 12px; color: var(--faint); margin: 10px 4px 0; display: flex; justify-content: space-between; }
+.done-actions { margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+
+/* ---------- settings ---------- */
+.set { padding: 0 16px 24px; }
+.group-h { font-size: 13px; color: var(--muted); margin: 22px 16px 6px; }
+.group-f { font-size: 12px; color: var(--faint); margin: 6px 16px 0; line-height: 1.55; }
+.group { background: var(--card); border-radius: 14px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 10px; padding: 0 16px; min-height: 50px; border-bottom: 1px solid var(--line); font-size: 16px; }
+.row:last-child { border-bottom: 0; }
+.row .grow { flex: 1; min-width: 0; }
+.row .val { color: var(--muted); font-size: 15px; }
+.row .sub { font-size: 12px; color: var(--faint); margin-top: 2px; }
+.fp { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 15px; background: var(--field); padding: 3px 8px; border-radius: 6px; }
+.mini-btn { border: 0; background: var(--field); color: var(--accent); border-radius: 8px; padding: 6px 12px; font-size: 14px; min-height: 32px; }
+.mini-btn.danger { color: var(--muted); }
+.row .seg { max-width: none; margin: 8px 0; }
+.term { justify-content: space-between; }
+.term .rm { border: 0; background: none; color: var(--faint); font-size: 22px; width: 36px; height: 36px; line-height: 1; }
+.add-row input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; padding: 14px 0; }
+.bar { height: 8px; background: var(--field); border-radius: 4px; position: relative; margin: 6px 0 4px; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); }
+.bar b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--muted); border-radius: 1px; }
+.num { width: 76px; text-align: right; border: 0; background: var(--field); border-radius: 8px; padding: 6px 8px; font-size: 15px; outline: 0; font-variant-numeric: tabular-nums; }
+.price-note { display: inline-block; font-size: 11px; color: var(--accent); background: var(--accent-soft); padding: 2px 6px; border-radius: 5px; margin-left: 4px; }
+.radio { width: 22px; height: 22px; border-radius: 11px; border: 2px solid var(--line); flex: none; display: grid; place-items: center; }
+.radio.on { border-color: var(--accent); }
+.radio.on::after { content: ""; width: 10px; height: 10px; border-radius: 5px; background: var(--accent); }
+.model-row { cursor: pointer; padding-top: 10px; padding-bottom: 10px; }
+.ok { color: var(--accent); font-size: 13px; white-space: nowrap; }
+.privacy { margin: 26px 8px 0; padding: 16px; border-radius: 14px; border: 1px dashed var(--line); text-align: center; }
+.privacy .p1 { font-size: 15px; font-weight: 600; }
+.privacy .p2 { font-size: 12px; color: var(--faint); margin-top: 6px; line-height: 1.6; }
+
+/* ---------- sheet ---------- */
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.35); z-index: 20; display: none; }
+.scrim.on { display: block; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 21; background: var(--screen); border-radius: 22px 22px 0 0;
+  padding: 10px 24px 40px; transform: translateY(105%); transition: transform .28s ease;
+}
+.sheet.on { transform: none; }
+.grab { width: 36px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 14px; }
+.sheet h3 { font-size: 20px; margin: 0 0 6px; }
+.sheet p { font-size: 14px; color: var(--muted); margin: 0 0 16px; line-height: 1.55; }
+.sheet .btn { margin-top: 16px; }
+.toast {
+  position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%) translateY(20px); opacity: 0;
+  background: var(--text); color: var(--screen); font-size: 14px; padding: 9px 16px; border-radius: 999px; z-index: 30;
+  transition: all .25s; pointer-events: none; white-space: nowrap;
+}
+.toast.on { opacity: 1; transform: translateX(-50%); }
+</style>
+</head>
+<body>
+
+<header class="pagebar">
+  <div class="pagebar-top">
+    <h1>keepsay <span>・iOS 主程式 mockup（M4a）</span></h1>
+    <button class="theme-btn" id="themeBtn" type="button">深色</button>
+  </div>
+  <nav class="switcher" id="switcher" aria-label="切換畫面">
+    <button data-go="ob-key">金鑰設定</button>
+    <button data-go="ob-model">下載模型</button>
+    <button data-go="home">首頁</button>
+    <button data-go="recording">錄音中</button>
+    <button data-go="processing">處理中</button>
+    <button data-go="done">完成</button>
+    <button data-go="fallback">潤稿失敗</button>
+    <button data-go="settings">設定</button>
+    <label><input type="checkbox" id="simFail"> 模擬潤稿失敗</label>
+  </nav>
+</header>
+
+<main class="stage">
+  <div class="fit" id="fit">
+    <div class="phone" id="phone">
+      <div class="screen-wrap" id="screenWrap">
+        <div class="island"></div>
+        <div class="statusbar"><span>9:41</span>
+          <span class="sb-icons"><i style="width:17px;height:10px;border-radius:2px;opacity:.9"></i><i style="width:24px;height:11px;border-radius:3px"></i></span>
+        </div>
+
+        <!-- Onboarding 1: key -->
+        <section class="screen" data-screen="ob-key">
+          <div class="scroll"><div class="ob">
+            <div class="dots"><i class="on"></i><i></i></div>
+            <h2>連接 Claude <span class="opt">選用</span></h2>
+            <p class="lead">語音一律在手機上轉寫。要潤稿時，才用你自己的 API 金鑰送出文字。</p>
+            <div class="field-label">Claude API 金鑰</div>
+            <label class="secure">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+              <input id="keyInput" type="password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
+            </label>
+            <p class="hint">存進 iOS 鑰匙圈。之後只會顯示末四碼。</p>
+            <details class="guide">
+              <summary>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--accent)"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg>
+                安全建議（1 分鐘）
+                <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+              </summary>
+              <ol>
+                <li><b>開專用 workspace</b>：只給 keepsay 用，方便追蹤與撤銷。</li>
+                <li><b>不綁付款方式</b>、<b>關閉自動儲值</b>：預付少量額度即可。</li>
+                <li><b>設定花費上限</b>：在 Console 的 workspace 設月上限。</li>
+                <li><b>如何撤銷</b>：Console → API Keys → 停用或刪除這把金鑰，立即失效。</li>
+              </ol>
+            </details>
+            <div class="ob-actions">
+              <button class="btn" id="saveKey" disabled>儲存金鑰</button>
+              <button class="btn ghost" id="skipKey">略過，只用原文模式</button>
+              <div class="skip-sub">不需金鑰・可離線・之後可在設定加入</div>
+            </div>
+          </div></div>
+        </section>
+
+        <!-- Onboarding 2: model -->
+        <section class="screen" data-screen="ob-model">
+          <div class="scroll"><div class="ob">
+            <div class="dots"><i></i><i class="on"></i></div>
+            <h2>下載語音模型</h2>
+            <p class="lead">轉寫在手機上完成，需要先下載一次模型。</p>
+            <div class="model-card">
+              <div class="row1"><span class="name">Whisper small</span><span class="size">466 MB</span></div>
+              <div class="desc">中文準確度與速度的平衡點。建議在 Wi‑Fi 下載。</div>
+              <div class="progress"><i id="obProg"></i></div>
+              <div class="pstat" id="obStat">下載完成後會核對 SHA-256。</div>
+            </div>
+            <p class="hint" style="margin-top:12px">想換其他大小，之後可在「設定 → 語音模型」更改。</p>
+            <div class="ob-actions">
+              <button class="btn" id="obDownload">下載（466 MB）</button>
+            </div>
+          </div></div>
+        </section>
+
+        <!-- Home -->
+        <section class="screen" data-screen="home">
+          <div class="navbar">
+            <span class="wordmark">keepsay</span>
+            <button class="icon-btn" data-go="settings" aria-label="設定">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+            </button>
+          </div>
+          <div class="home-main">
+            <button class="rec" id="recBtn" aria-label="開始錄音">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+            </button>
+            <div class="rec-label">點一下，開始說話</div>
+            <div class="seg" id="modeSeg" role="radiogroup" aria-label="模式">
+              <button data-mode="raw">原文</button>
+              <button data-mode="light">標點</button>
+              <button data-mode="polish" class="on">潤稿</button>
+              <button data-mode="formal">正式</button>
+            </div>
+            <div class="mode-desc" id="modeDesc"></div>
+          </div>
+          <div class="budget-pill" id="budgetPill"></div>
+        </section>
+
+        <!-- Recording -->
+        <section class="screen" data-screen="recording">
+          <div class="navbar"><span></span><span class="chip"><span class="live-dot"></span>錄音中・<span class="cur-mode">潤稿</span></span><span style="width:44px"></span></div>
+          <div class="center-col">
+            <div class="timer" id="timer">00:00</div>
+            <div class="meter" id="meter"></div>
+            <button class="rec stop" id="stopBtn" aria-label="停止">
+              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>
+            </button>
+            <div class="rec-label" style="margin-top:0">點一下停止</div>
+          </div>
+          <div class="budget-pill">音訊只在記憶體中，處理完即丟棄</div>
+        </section>
+
+        <!-- Processing -->
+        <section class="screen" data-screen="processing">
+          <div class="center-col">
+            <div class="steps">
+              <div class="step" id="st1"><span class="ic"></span>轉寫中</div>
+              <div class="step" id="st2"><span class="ic"></span>潤稿中</div>
+            </div>
+            <div class="proc-note" id="procNote">在手機上轉寫・不上傳音訊</div>
+          </div>
+        </section>
+
+        <!-- Done -->
+        <section class="screen" data-screen="done">
+          <div class="navbar"><span style="width:44px"></span><span class="title">完成</span>
+            <button class="icon-btn" data-go="home" aria-label="關閉"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div class="done-wrap">
+            <div class="banner">
+              <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>
+              <div><div class="t1">已複製到剪貼簿</div><div class="t2"><span class="cd">60</span> 秒後清除</div></div>
+            </div>
+            <div class="result" id="doneText"></div>
+            <div class="result-meta"><span id="doneMeta">潤稿・約 US$0.002</span><span>離開後不保留</span></div>
+            <div class="done-actions">
+              <button class="btn" data-go="home-rec">再錄一段</button>
+              <button class="btn ghost copy-again">再複製一次</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Fallback -->
+        <section class="screen" data-screen="fallback">
+          <div class="navbar"><span style="width:44px"></span><span class="title">完成</span>
+            <button class="icon-btn" data-go="home" aria-label="關閉"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div class="done-wrap">
+            <div class="banner warn">
+              <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 7v6M12 17h.01"/></svg></span>
+              <div><div class="t1">潤稿失敗，已改用原文</div><div class="t2">連線逾時・已複製，<span class="cd">60</span> 秒後清除</div></div>
+            </div>
+            <div class="result" id="fbText"></div>
+            <div class="result-meta"><span>原文（本機轉寫）</span><span>離開後不保留</span></div>
+            <div class="done-actions">
+              <button class="btn" data-go="home-rec">再錄一段</button>
+              <button class="btn ghost copy-again">再複製一次</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Settings -->
+        <section class="screen" data-screen="settings">
+          <div class="navbar">
+            <button class="link-btn" data-go="home">‹ 返回</button>
+            <span class="title">設定</span><span style="width:52px"></span>
+          </div>
+          <div class="scroll"><div class="set">
+
+            <div class="group-h">Claude 金鑰</div>
+            <div class="group" id="keyGroup"></div>
+            <div class="group-f">完整金鑰只存在鑰匙圈，不會再顯示或複製出來。</div>
+
+            <div class="group-h">預設模式</div>
+            <div class="group"><div class="row"><div class="seg" id="defSeg" style="max-width:none">
+              <button data-mode="raw">原文</button><button data-mode="light">標點</button><button data-mode="polish" class="on">潤稿</button><button data-mode="formal">正式</button>
+            </div></div></div>
+
+            <div class="group-h">詞彙表</div>
+            <div class="group" id="glossary"></div>
+            <div class="group-f">人名、產品名、專有名詞。轉寫與潤稿時會照這裡的寫法。</div>
+
+            <div class="group-h">預算</div>
+            <div class="group">
+              <div class="row" style="display:block;padding-top:12px;padding-bottom:12px">
+                <div style="display:flex;justify-content:space-between;font-size:15px"><span>本月用量</span><span style="font-variant-numeric:tabular-nums">US$1.24 <span style="color:var(--faint)">／ 5.00</span></span></div>
+                <div class="bar"><i style="width:24.8%"></i><b style="left:60%"></b></div>
+                <div class="sub">每月 1 日歸零・只在本機計算</div>
+              </div>
+              <div class="row"><div class="grow">軟上限<div class="sub">到了提醒一次</div></div>US$ <input class="num" value="3.00" inputmode="decimal"></div>
+              <div class="row"><div class="grow">硬上限<div class="sub">到了停用潤稿，只出原文</div></div>US$ <input class="num" value="5.00" inputmode="decimal"></div>
+            </div>
+            <div class="group-h">價格表（每百萬 token）<span class="price-note">請核對官方定價</span></div>
+            <div class="group">
+              <div class="row"><div class="grow">輸入</div>US$ <input class="num" value="3.00"></div>
+              <div class="row"><div class="grow">輸出</div>US$ <input class="num" value="15.00"></div>
+            </div>
+            <div class="group-f">用量是依這張表估算的。官方調價時請自行更新。</div>
+
+            <div class="group-h">語音模型</div>
+            <div class="group" id="models"></div>
+            <div class="group-f">只在你按下時下載。完成後比對 SHA-256，不符就刪除。</div>
+
+            <div class="privacy">
+              <div class="p1">無遙測・不保存歷史・音訊不落地</div>
+              <div class="p2">唯一的連線：api.anthropic.com（潤稿時）<br>與你手動按下的模型下載。</div>
+            </div>
+            <div style="text-align:center;font-size:12px;color:var(--faint);margin-top:16px">keepsay 0.1.0・開放原始碼</div>
+          </div></div>
+        </section>
+
+        <!-- Key sheet -->
+        <div class="scrim" id="scrim"></div>
+        <div class="sheet" id="sheet">
+          <div class="grab"></div>
+          <h3 id="sheetTitle">更換金鑰</h3>
+          <p>新金鑰會取代舊的。儲存後只顯示末四碼。</p>
+          <label class="secure">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <input id="sheetInput" type="password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
+          </label>
+          <button class="btn" id="sheetSave" disabled>儲存</button>
+          <button class="btn ghost" id="sheetCancel">取消</button>
+        </div>
+        <div class="toast" id="toast"></div>
+        <div class="home-ind"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<p class="note">這是互動 mockup：點按鈕可走完整流程，上方按鈕可直接跳到任一畫面。所有金額、文字皆為示意。</p>
+
+<script>
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  /* ---- theme ---- */
+  var root = document.documentElement, themeBtn = $('#themeBtn');
+  function isDark() {
+    var t = root.getAttribute('data-theme');
+    if (t) return t === 'dark';
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  function syncThemeBtn() { themeBtn.textContent = isDark() ? '淺色' : '深色'; }
+  themeBtn.addEventListener('click', function () { root.setAttribute('data-theme', isDark() ? 'light' : 'dark'); syncThemeBtn(); });
+  syncThemeBtn();
+
+  /* ---- fit phone to viewport ---- */
+  var fit = $('#fit'), phone = $('#phone');
+  function doFit() {
+    var avail = Math.min(document.documentElement.clientWidth - 32, 390);
+    var s = Math.min(1, avail / 390);
+    phone.style.transform = 'scale(' + s + ')';
+    fit.style.width = (390 * s) + 'px';
+    fit.style.height = (844 * s) + 'px';
+  }
+  window.addEventListener('resize', doFit); doFit();
+
+  /* ---- state ---- */
+  var MODES = { raw: '原文', light: '標點', polish: '潤稿', formal: '正式' };
+  var DESC = {
+    raw: '只轉寫，不連網',
+    light: '補標點、分段，不改字',
+    polish: '修順語句，保留原意',
+    formal: '改成正式書面語'
+  };
+  var state = { hasKey: true, fp: 'a1B2', mode: 'polish', timers: [] };
+  var RAW = '明天下午三點跟 kevin 開會 討論 keep say 的 ios 鍵盤擴充 嗯 記得先準備 test flight 的版本 然後那個 預算的部分也要一起看';
+  var POLISHED = '明天下午三點跟 Kevin 開會，討論 keepsay 的 iOS 鍵盤擴充。記得先準備 TestFlight 的版本，預算的部分也要一起看。';
+
+  function clearTimers() { state.timers.forEach(function (t) { clearInterval(t); clearTimeout(t); }); state.timers = []; }
+
+  function show(name) {
+    clearTimers();
+    $$('.screen').forEach(function (s) { s.classList.toggle('on', s.getAttribute('data-screen') === name); });
+    $$('#switcher [data-go]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-go') === name); });
+    closeSheet();
+    if (name === 'ob-model') resetObModel();
+    if (name === 'home') renderHome();
+    if (name === 'recording') startRecording();
+    if (name === 'processing') startProcessing();
+    if (name === 'done') startDone(false);
+    if (name === 'fallback') startDone(true);
+    if (name === 'settings') renderSettings();
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-go]');
+    if (!b) return;
+    var g = b.getAttribute('data-go');
+    if (g === 'home-rec') { show('recording'); return; }
+    show(g);
+  });
+
+  /* ---- toast ---- */
+  var toastT;
+  function toast(msg) {
+    var t = $('#toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 1600);
+  }
+
+  /* ---- onboarding ---- */
+  var keyInput = $('#keyInput'), saveKey = $('#saveKey');
+  keyInput.addEventListener('input', function () { saveKey.disabled = keyInput.value.trim().length < 8; });
+  saveKey.addEventListener('click', function () {
+    var v = keyInput.value.trim();
+    state.hasKey = true; state.fp = v.slice(-4) || 'a1B2'; keyInput.value = ''; saveKey.disabled = true;
+    show('ob-model');
+  });
+  $('#skipKey').addEventListener('click', function () { state.hasKey = false; state.mode = 'raw'; show('ob-model'); });
+  function resetObModel() {
+    var btn = $('#obDownload'); btn.dataset.ready = ''; btn.disabled = false; btn.textContent = '下載（466 MB）';
+    $('#obProg').style.width = '0'; $('#obStat').textContent = '下載完成後會核對 SHA-256。';
+  }
+  $('#obDownload').addEventListener('click', function () {
+    var btn = this, p = 0, bar = $('#obProg'), stat = $('#obStat');
+    if (btn.dataset.ready) { show('home'); return; }
+    btn.disabled = true; btn.textContent = '下載中…';
+    var t = setInterval(function () {
+      p = Math.min(100, p + 7);
+      bar.style.width = p + '%';
+      stat.textContent = p < 100 ? '下載中 ' + Math.round(466 * p / 100) + ' / 466 MB' : '驗證 SHA-256…';
+      if (p >= 100) {
+        clearInterval(t);
+        setTimeout(function () {
+          stat.textContent = 'SHA-256 相符，已完成。';
+          btn.disabled = false; btn.textContent = '開始使用'; btn.dataset.ready = '1';
+        }, 700);
+      }
+    }, 90);
+    state.timers.push(t);
+  });
+
+  /* ---- home ---- */
+  function renderHome() {
+    $$('#modeSeg button').forEach(function (b) {
+      var m = b.getAttribute('data-mode');
+      b.disabled = !state.hasKey && m !== 'raw';
+      b.classList.toggle('on', m === state.mode);
+    });
+    $('#modeDesc').textContent = (!state.hasKey ? '未設定金鑰，只能用原文・' : '') + DESC[state.mode];
+    $('#budgetPill').innerHTML = state.hasKey
+      ? '本月 US$1.24 ／ 5.00 <span class="mini"><i style="width:25%"></i></span>'
+      : '原文模式・完全離線';
+  }
+  $('#modeSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b || b.disabled) return;
+    state.mode = b.getAttribute('data-mode'); renderHome();
+  });
+  $('#recBtn').addEventListener('click', function () { show('recording'); });
+
+  /* ---- recording ---- */
+  var meter = $('#meter');
+  for (var i = 0; i < 21; i++) meter.appendChild(document.createElement('i'));
+  function startRecording() {
+    $$('.cur-mode').forEach(function (n) { n.textContent = MODES[state.mode]; });
+    var start = Date.now(), timer = $('#timer');
+    timer.textContent = '00:00';
+    state.timers.push(setInterval(function () {
+      var s = Math.floor((Date.now() - start) / 1000);
+      timer.textContent = ('0' + Math.floor(s / 60)).slice(-2) + ':' + ('0' + s % 60).slice(-2);
+    }, 250));
+    var bars = $$('i', meter);
+    state.timers.push(setInterval(function () {
+      bars.forEach(function (b, idx) {
+        var c = 1 - Math.abs(idx - 10) / 11;
+        b.style.height = Math.max(6, Math.round((Math.random() * 0.75 + 0.25) * 60 * c)) + 'px';
+      });
+    }, 110));
+  }
+  $('#stopBtn').addEventListener('click', function () { show('processing'); });
+
+  /* ---- processing ---- */
+  var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+  function startProcessing() {
+    var s1 = $('#st1'), s2 = $('#st2'), note = $('#procNote');
+    var needLLM = state.mode !== 'raw' && state.hasKey;
+    s1.className = 'step active'; s1.firstChild.innerHTML = '';
+    s2.className = 'step' + (needLLM ? '' : ' skip'); s2.firstChild.innerHTML = '';
+    note.textContent = '在手機上轉寫・不上傳音訊';
+    state.timers.push(setTimeout(function () {
+      s1.className = 'step done'; s1.firstChild.innerHTML = CHECK;
+      if (!needLLM) { state.timers.push(setTimeout(function () { show('done'); }, 400)); return; }
+      s2.className = 'step active';
+      note.textContent = '只送出文字到 api.anthropic.com';
+      state.timers.push(setTimeout(function () {
+        show($('#simFail').checked ? 'fallback' : 'done');
+      }, 1300));
+    }, 1100));
+  }
+
+  /* ---- done / fallback ---- */
+  function startDone(fb) {
+    var screen = $('.screen[data-screen="' + (fb ? 'fallback' : 'done') + '"]');
+    var raw = state.mode === 'raw' || !state.hasKey;
+    if (fb) $('#fbText').textContent = RAW;
+    else {
+      $('#doneText').textContent = raw ? RAW : POLISHED;
+      $('#doneMeta').textContent = raw ? '原文・本機轉寫' : MODES[state.mode] + '・約 US$0.002';
+    }
+    var n = 60, cd = $('.cd', screen); cd.textContent = n;
+    state.timers.push(setInterval(function () {
+      n = Math.max(0, n - 1); cd.textContent = n;
+      if (n === 0) $('.t2', screen).textContent = fb ? '剪貼簿已清除' : '剪貼簿已清除';
+    }, 1000));
+  }
+  $$('.copy-again').forEach(function (b) {
+    b.addEventListener('click', function () { toast('已再次複製，60 秒後清除'); });
+  });
+
+  /* ---- settings ---- */
+  var glossary = ['keepsay', 'Kevin', 'TestFlight', 'Claude', 'iOS'];
+  var models = [
+    { id: 'base', name: 'Whisper base', size: '142 MB', note: '最快，準確度普通', have: false },
+    { id: 'small', name: 'Whisper small', size: '466 MB', note: '建議・平衡', have: true },
+    { id: 'turbo', name: 'Whisper turbo', size: '1.6 GB', note: '最準・large-v3-turbo', have: false }
+  ];
+  var curModel = 'small';
+
+  function renderKey() {
+    var g = $('#keyGroup');
+    if (state.hasKey) {
+      g.innerHTML = '<div class="row"><div class="grow">金鑰</div><span class="fp">…' + escapeHtml(state.fp) + '</span></div>' +
+        '<div class="row"><div class="grow" style="color:var(--muted);font-size:14px">已存於 iOS 鑰匙圈</div>' +
+        '<button class="mini-btn" id="kReplace">更換</button><button class="mini-btn danger" id="kDelete">刪除</button></div>';
+      $('#kReplace').onclick = function () { openSheet('更換金鑰'); };
+      $('#kDelete').onclick = function () {
+        if (this.dataset.armed) { state.hasKey = false; state.mode = 'raw'; renderKey(); toast('金鑰已從鑰匙圈刪除'); return; }
+        this.dataset.armed = '1'; this.textContent = '確定刪除？'; this.style.color = 'var(--text)';
+      };
+    } else {
+      g.innerHTML = '<div class="row"><div class="grow">金鑰<div class="sub">未設定・只能使用原文模式</div></div>' +
+        '<button class="mini-btn" id="kAdd">新增</button></div>';
+      $('#kAdd').onclick = function () { openSheet('新增金鑰'); };
+    }
+  }
+  function renderGlossary() {
+    var g = $('#glossary');
+    g.innerHTML = glossary.map(function (t, i) {
+      return '<div class="row term"><span>' + escapeHtml(t) + '</span><button class="rm" data-i="' + i + '" aria-label="移除">−</button></div>';
+    }).join('') + '<div class="row add-row"><input id="gIn" placeholder="新增詞彙…" autocomplete="off"><button class="mini-btn" id="gAdd">新增</button></div>';
+    $$('.rm', g).forEach(function (b) { b.onclick = function () { glossary.splice(+b.dataset.i, 1); renderGlossary(); }; });
+    var add = function () { var v = $('#gIn').value.trim(); if (v) { glossary.push(v); renderGlossary(); $('#gIn').focus(); } };
+    $('#gAdd').onclick = add;
+    $('#gIn').onkeydown = function (e) { if (e.key === 'Enter') add(); };
+  }
+  function renderModels() {
+    var g = $('#models');
+    g.innerHTML = models.map(function (m) {
+      var right = m.have ? '<span class="ok">✓ 已驗證</span>'
+        : (m.dl ? '<span class="ok" style="color:var(--muted)">' + m.dl + '</span>'
+          : '<button class="mini-btn" data-dl="' + m.id + '">下載 ' + m.size + '</button>');
+      return '<div class="row model-row" data-pick="' + m.id + '"><span class="radio' + (curModel === m.id ? ' on' : '') + '"></span>' +
+        '<div class="grow">' + m.name + '<div class="sub">' + m.size + '・' + m.note + '</div></div>' + right + '</div>';
+    }).join('');
+    $$('[data-pick]', g).forEach(function (r) {
+      r.onclick = function (e) {
+        if (e.target.closest('[data-dl]')) return;
+        var m = models.filter(function (x) { return x.id === r.dataset.pick; })[0];
+        if (!m.have) { toast('請先下載這個模型'); return; }
+        curModel = m.id; renderModels();
+      };
+    });
+    $$('[data-dl]', g).forEach(function (b) {
+      b.onclick = function () {
+        var m = models.filter(function (x) { return x.id === b.dataset.dl; })[0], p = 0;
+        var t = setInterval(function () {
+          p += 10; m.dl = p < 100 ? '下載中 ' + p + '%' : 'SHA-256 驗證中…'; renderModels();
+          if (p >= 100) { clearInterval(t); setTimeout(function () { m.dl = null; m.have = true; renderModels(); toast('SHA-256 相符'); }, 800); }
+        }, 160);
+      };
+    });
+  }
+  function renderSettings() {
+    renderKey(); renderGlossary(); renderModels();
+    $$('#defSeg button').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.mode === state.mode);
+      b.disabled = !state.hasKey && b.dataset.mode !== 'raw';
+    });
+  }
+  $('#defSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b || b.disabled) return;
+    state.mode = b.dataset.mode; renderSettings();
+  });
+
+  /* ---- key sheet ---- */
+  var sheetInput = $('#sheetInput'), sheetSave = $('#sheetSave');
+  function openSheet(title) {
+    $('#sheetTitle').textContent = title; sheetInput.value = ''; sheetSave.disabled = true;
+    $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
+  }
+  function closeSheet() { $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); sheetInput.value = ''; }
+  sheetInput.addEventListener('input', function () { sheetSave.disabled = sheetInput.value.trim().length < 8; });
+  sheetSave.addEventListener('click', function () {
+    var v = sheetInput.value.trim();
+    state.hasKey = true; state.fp = v.slice(-4); if (state.mode === 'raw') state.mode = 'polish';
+    closeSheet(); renderSettings(); toast('已儲存・…' + state.fp);
+  });
+  $('#sheetCancel').addEventListener('click', closeSheet);
+  $('#scrim').addEventListener('click', closeSheet);
+
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  show('ob-key');
+})();
+</script>
+</body>
+</html>

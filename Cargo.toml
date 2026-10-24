@@ -1,0 +1,18 @@
+[workspace]
+resolver = "3"
+members = ["core", "cli"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.97"
+license = "GPL-3.0-only"
+repository = "https://github.com/rightson/keepsay"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+print_stdout = "warn"

@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>keepsay Desktop Mockup</title>
+<style>
+:root {
+  --bg: #eef0f3;
+  --chrome: #ffffff;
+  --chrome-line: #dfe2e7;
+  --text: #16181c;
+  --muted: #6b717c;
+  --faint: #a2a7b0;
+  --accent: #2f6be4;
+  --accent-soft: #e6eefc;
+  --accent-ink: #ffffff;
+  --wall: linear-gradient(160deg, #d9dee6 0%, #c7ced9 55%, #b9c2cf 100%);
+  --win: #ffffff;
+  --win-side: #f3f4f6;
+  --win-bar: #ececee;
+  --line: #e2e4e8;
+  --field: #f2f3f5;
+  --menu: rgba(246, 246, 248, .92);
+  --hud: rgba(28, 28, 31, .86);
+  --hud-ink: #ffffff;
+  --shadow: 0 24px 60px -18px rgba(20, 30, 50, .35), 0 0 0 .5px rgba(0,0,0,.12);
+  --taskbar: rgba(238, 240, 244, .92);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1013; --chrome: #17181c; --chrome-line: #2a2c31; --text: #f1f2f4; --muted: #9298a2; --faint: #61666f;
+    --accent: #5b8cf5; --accent-soft: #1c2a47; --accent-ink: #ffffff;
+    --wall: linear-gradient(160deg, #2a2f38 0%, #1f232a 55%, #181b21 100%);
+    --win: #1f2024; --win-side: #26272b; --win-bar: #2a2b30; --line: #34363c; --field: #2b2d32;
+    --menu: rgba(40, 41, 46, .92); --hud: rgba(40, 41, 46, .9); --hud-ink: #ffffff;
+    --shadow: 0 24px 60px -18px rgba(0,0,0,.8), 0 0 0 .5px rgba(255,255,255,.1);
+    --taskbar: rgba(32, 33, 37, .92); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1013; --chrome: #17181c; --chrome-line: #2a2c31; --text: #f1f2f4; --muted: #9298a2; --faint: #61666f;
+  --accent: #5b8cf5; --accent-soft: #1c2a47; --accent-ink: #ffffff;
+  --wall: linear-gradient(160deg, #2a2f38 0%, #1f232a 55%, #181b21 100%);
+  --win: #1f2024; --win-side: #26272b; --win-bar: #2a2b30; --line: #34363c; --field: #2b2d32;
+  --menu: rgba(40, 41, 46, .92); --hud: rgba(40, 41, 46, .9); --hud-ink: #ffffff;
+  --shadow: 0 24px 60px -18px rgba(0,0,0,.8), 0 0 0 .5px rgba(255,255,255,.1);
+  --taskbar: rgba(32, 33, 37, .92); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text); overflow-x: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", "Segoe UI Variable", "Segoe UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+input { font: inherit; color: inherit; }
+.win-font, .win-font button, .win-font input { font-family: "Segoe UI Variable", "Segoe UI", "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif; }
+
+/* ---------- page chrome ---------- */
+.pagebar { position: sticky; top: 0; z-index: 50; background: var(--chrome); border-bottom: 1px solid var(--chrome-line); padding: 12px 16px; }
+.pagebar-top { display: flex; align-items: center; gap: 12px; max-width: 1120px; margin: 0 auto; }
+.pagebar h1 { font-size: 15px; font-weight: 600; margin: 0; flex: 1; min-width: 0; }
+.pagebar h1 span { color: var(--muted); font-weight: 400; }
+@media (max-width: 640px) { .pagebar h1 span { display: none; } }
+.pill-btn { border: 1px solid var(--chrome-line); background: transparent; border-radius: 999px; padding: 5px 12px; font-size: 13px; white-space: nowrap; }
+.tabs { display: inline-flex; background: var(--field); border-radius: 9px; padding: 2px; }
+.tabs button { border: 0; background: transparent; border-radius: 7px; padding: 5px 14px; font-size: 13px; color: var(--muted); }
+.tabs button.on { background: var(--chrome); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+.section { max-width: 1120px; margin: 0 auto; padding: 24px 16px 8px; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 12px; }
+.sec-head h2 { font-size: 16px; margin: 0; font-weight: 600; }
+.sec-head p { margin: 0; color: var(--muted); font-size: 13px; flex-basis: 100%; }
+.switcher { display: flex; flex-wrap: wrap; gap: 6px; }
+.switcher button { border: 1px solid var(--chrome-line); background: var(--chrome); border-radius: 8px; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+.switcher button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.fit { position: relative; margin: 0 auto; }
+.fit > .frame { position: absolute; top: 0; left: 0; transform-origin: top left; border-radius: 12px; overflow: hidden; }
+.platform { display: none; }
+.platform.on { display: block; }
+.footnote { max-width: 1120px; margin: 8px auto 48px; padding: 0 16px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+/* ---------- desktop scene ---------- */
+.scene { width: 1040px; height: 600px; background: var(--wall); position: relative; box-shadow: var(--shadow); }
+.menubar {
+  height: 28px; display: flex; align-items: center; padding: 0 14px; gap: 18px; font-size: 13px;
+  background: color-mix(in srgb, var(--win) 72%, transparent); backdrop-filter: blur(20px);
+}
+.menubar b { font-weight: 600; }
+.menubar .spacer { flex: 1; }
+.mb-icon { display: grid; place-items: center; width: 30px; height: 22px; border-radius: 5px; border: 0; background: transparent; padding: 0; }
+.mb-icon.on { background: color-mix(in srgb, var(--text) 14%, transparent); }
+.mb-icon.live, .tray .ti.live { color: var(--accent); }
+.mb-icon svg { width: 18px; height: 18px; }
+.mb-glyph { width: 16px; height: 10px; border: 1.5px solid var(--text); border-radius: 3px; opacity: .8; }
+
+.appwin {
+  position: absolute; background: var(--win); border-radius: 10px; box-shadow: var(--shadow); overflow: hidden;
+}
+.titlebar { height: 36px; display: flex; align-items: center; padding: 0 12px; gap: 8px; background: var(--win-bar); font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line); }
+.lights { display: flex; gap: 8px; }
+.lights i { width: 12px; height: 12px; border-radius: 6px; background: var(--line); display: block; }
+.doc { padding: 22px 28px; font-size: 15px; line-height: 1.8; }
+.doc h4 { margin: 0 0 8px; font-size: 18px; }
+.ins { background: var(--accent-soft); border-radius: 3px; transition: background 1.5s; }
+.caret { display: inline-block; width: 1.5px; height: 1.1em; background: var(--accent); vertical-align: -3px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.menu {
+  position: absolute; width: 268px; background: var(--menu); backdrop-filter: blur(30px); border-radius: 10px; padding: 5px;
+  box-shadow: var(--shadow); font-size: 13px; z-index: 5;
+}
+.menu .mi { display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 26px; border-radius: 5px; border: 0; background: transparent; width: 100%; text-align: left; font-size: 13px; }
+.menu button.mi:hover { background: var(--accent); color: var(--accent-ink); }
+.menu button.mi:hover .kbd, .menu button.mi:hover .check { color: var(--accent-ink); }
+.menu .mi .grow { flex: 1; }
+.menu .kbd { color: var(--muted); font-size: 12px; }
+.menu .check { width: 14px; color: var(--text); font-size: 12px; text-align: center; }
+.menu .sep { height: 1px; background: var(--line); margin: 5px 10px; }
+.menu .head { padding: 8px 10px 6px; }
+.menu .head .t { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.menu .head .s { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.menu .label { color: var(--muted); font-size: 11px; padding: 4px 10px 2px; }
+.dot { width: 7px; height: 7px; border-radius: 4px; background: var(--faint); display: inline-block; }
+.dot.on { background: var(--accent); }
+.menu .muted { color: var(--muted); }
+
+/* HUD overlay */
+.hud {
+  position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px;
+  background: var(--hud); color: var(--hud-ink); backdrop-filter: blur(24px); height: 48px; padding: 0 20px 0 16px;
+  border-radius: 24px; font-size: 14px; white-space: nowrap; box-shadow: 0 12px 30px -8px rgba(0,0,0,.45); z-index: 6;
+}
+.hud.win { border-radius: 8px; height: 52px; background: var(--menu); color: var(--text); border: 1px solid var(--line); }
+.hud .bars { display: flex; gap: 3px; align-items: center; height: 22px; }
+.hud .bars i { width: 3px; border-radius: 2px; background: var(--accent); height: 6px; transition: height .09s; }
+.hud .t { font-variant-numeric: tabular-nums; opacity: .75; }
+.hud .k { font-size: 12px; opacity: .6; border-left: 1px solid currentColor; padding-left: 12px; margin-left: 2px; border-color: color-mix(in srgb, currentColor 30%, transparent); }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid color-mix(in srgb, currentColor 25%, transparent); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.okc { width: 20px; height: 20px; border-radius: 10px; background: var(--accent); color: #fff; display: grid; place-items: center; }
+.okc svg { width: 12px; height: 12px; }
+.okc.warn { background: #8a8f98; }
+.recdot { width: 10px; height: 10px; border-radius: 5px; background: var(--accent); animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+
+/* Windows taskbar */
+.taskbar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: var(--taskbar); backdrop-filter: blur(30px);
+  border-top: 1px solid var(--line); display: flex; align-items: center; padding: 0 10px; font-size: 12px;
+}
+.tb-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+.tb-center i { width: 36px; height: 36px; border-radius: 6px; display: grid; place-items: center; }
+.tb-center i::after { content: ""; width: 22px; height: 22px; border-radius: 5px; background: color-mix(in srgb, var(--text) 18%, transparent); }
+.tb-center i.active { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.tray { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.tray .ti { height: 36px; min-width: 30px; padding: 0 6px; border-radius: 5px; display: grid; place-items: center; border: 0; background: transparent; }
+.tray .ti.on { background: color-mix(in srgb, var(--text) 9%, transparent); }
+.tray .ti svg { width: 16px; height: 16px; }
+.tray .clock { text-align: right; line-height: 1.35; padding: 0 8px; font-size: 12px; }
+.menu.win { border-radius: 8px; padding: 4px; border: 1px solid var(--line); width: 272px; }
+.menu.win .mi { height: 32px; border-radius: 4px; padding: 0 12px; }
+.menu.win button.mi:hover { background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text); }
+.menu.win button.mi:hover .kbd { color: var(--muted); }
+.menu.win button.mi:hover .check { color: var(--text); }
+
+/* ---------- settings windows ---------- */
+.backdrop { width: 860px; height: 580px; background: var(--wall); position: relative; display: grid; place-items: center; }
+.setwin { width: 780px; height: 520px; background: var(--win); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; position: relative; }
+.mac-toolbar { background: var(--win-bar); border-bottom: 1px solid var(--line); padding: 10px 14px 6px; }
+.mac-toolbar .top { display: flex; align-items: center; height: 16px; }
+.mac-toolbar .top .ttl { flex: 1; text-align: center; font-size: 13px; font-weight: 600; margin-right: 52px; }
+.mac-tabs { display: flex; justify-content: center; gap: 2px; margin-top: 6px; }
+.mac-tabs button { border: 0; background: transparent; border-radius: 7px; width: 74px; padding: 5px 0 4px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); }
+.mac-tabs button svg { width: 22px; height: 22px; }
+.mac-tabs button.on { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--accent); }
+.pane { flex: 1; overflow: auto; padding: 22px 64px 24px; font-size: 13px; }
+.form-row { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: start; padding: 9px 0; }
+.form-row > .lbl { text-align: right; color: var(--text); padding-top: 4px; }
+.form-row .help { color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.55; }
+.hr { height: 1px; background: var(--line); margin: 8px 0; }
+.seg { display: inline-flex; background: var(--field); border-radius: 7px; padding: 2px; }
+.seg button { border: 0; background: transparent; border-radius: 5px; padding: 4px 14px; font-size: 13px; color: var(--muted); }
+.seg button.on { background: var(--win); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+.keycap { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--field); border-radius: 6px; padding: 4px 10px; font-size: 13px; min-width: 120px; justify-content: center; }
+.radio-line { display: flex; align-items: center; gap: 8px; padding: 3px 0; cursor: pointer; }
+.rd { width: 15px; height: 15px; border-radius: 8px; border: 1.5px solid var(--faint); display: grid; place-items: center; flex: none; }
+.rd.on { border-color: var(--accent); background: var(--accent); }
+.rd.on::after { content: ""; width: 5px; height: 5px; border-radius: 3px; background: #fff; }
+.tgl { width: 34px; height: 20px; border-radius: 10px; background: var(--line); position: relative; border: 0; padding: 0; flex: none; }
+.tgl::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .15s; }
+.tgl.on { background: var(--accent); }
+.tgl.on::after { left: 16px; }
+.btn { border: 1px solid var(--line); background: var(--win); border-radius: 6px; padding: 4px 12px; font-size: 13px; min-height: 26px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn[disabled] { opacity: .45; cursor: default; }
+.fp { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; background: var(--field); padding: 3px 8px; border-radius: 5px; font-size: 13px; }
+.box { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.box .r { display: flex; align-items: center; gap: 10px; padding: 0 12px; min-height: 34px; border-bottom: 1px solid var(--line); }
+.box .r:last-child { border-bottom: 0; }
+.box .r .grow { flex: 1; min-width: 0; }
+.box .r .sub { color: var(--muted); font-size: 11px; }
+.box .r.sel { background: var(--accent-soft); }
+.box-tools { display: flex; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 8px 8px; margin-top: -1px; }
+.box-tools button { border: 0; border-right: 1px solid var(--line); background: transparent; width: 28px; height: 24px; font-size: 15px; color: var(--muted); }
+.box-tools input { flex: 1; border: 0; background: transparent; outline: 0; padding: 0 10px; font-size: 13px; min-width: 0; }
+.securefield { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; height: 28px; background: var(--win); width: 300px; }
+.securefield:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.securefield input { border: 0; outline: 0; background: transparent; flex: 1; min-width: 0; font-size: 13px; letter-spacing: 1.5px; }
+.securefield input::placeholder { letter-spacing: 0; color: var(--faint); }
+.securefield svg { width: 14px; height: 14px; color: var(--faint); }
+.num { width: 80px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; background: var(--win); text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; outline: 0; }
+.ubar { height: 8px; background: var(--field); border-radius: 4px; position: relative; width: 320px; margin: 6px 0 4px; }
+.ubar i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; }
+.ubar b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--muted); }
+.tag { display: inline-block; font-size: 11px; color: var(--accent); background: var(--accent-soft); padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+.perm { display: inline-flex; align-items: center; gap: 6px; }
+.privacy-card { border: 1px dashed var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 6px; }
+.privacy-card .p1 { font-weight: 600; font-size: 14px; }
+.privacy-card .p2 { color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.6; }
+details.guide summary { cursor: pointer; color: var(--accent); font-size: 12px; margin-top: 8px; }
+details.guide ol { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+details.guide b { color: var(--text); font-weight: 600; }
+
+/* Windows settings */
+.win-titlebar { height: 40px; display: flex; align-items: center; padding-left: 14px; font-size: 12px; gap: 10px; background: var(--win-side); }
+.win-titlebar .grow { flex: 1; }
+.win-titlebar .caps { display: flex; }
+.win-titlebar .caps span { width: 46px; height: 40px; display: grid; place-items: center; font-size: 13px; color: var(--muted); }
+.win-body { flex: 1; display: flex; min-height: 0; background: var(--win-side); }
+.win-nav { width: 200px; padding: 8px 6px; }
+.win-nav button { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: transparent; border-radius: 5px; height: 36px; padding: 0 12px; font-size: 14px; position: relative; text-align: left; }
+.win-nav button svg { width: 16px; height: 16px; color: var(--muted); }
+.win-nav button.on { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.win-nav button.on::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--accent); }
+.win-content { flex: 1; overflow: auto; padding: 8px 24px 24px 12px; }
+.win-content h3 { font-size: 26px; font-weight: 600; margin: 4px 0 16px; letter-spacing: -.3px; }
+.card { background: var(--win); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 4px; font-size: 14px; min-height: 60px; }
+.card .grow { flex: 1; min-width: 0; }
+.card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; line-height: 1.5; }
+.card.col { display: block; }
+.win-font .btn { border-radius: 4px; min-height: 32px; padding: 4px 14px; font-size: 14px; }
+.win-font .seg { border-radius: 4px; }
+.webview-tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; margin-left: 8px; vertical-align: 3px; font-weight: 400; letter-spacing: 0; }
+
+/* Native Win32 dialog — deliberately not themed by the page */
+.native-layer { position: absolute; inset: 0; background: rgba(0,0,0,.4); display: none; place-items: center; z-index: 20; }
+.native-layer.on { display: grid; }
+.native-wrap { position: relative; }
+.native-callout {
+  position: absolute; left: 50%; top: calc(100% + 14px); transform: translateX(-50%); white-space: nowrap;
+  background: #fff7d6; color: #5a4a00; border: 1.5px dashed #b08d00; border-radius: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px;
+  font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+}
+.w32 {
+  width: 380px; background: #f0f0f0; color: #000; border: 1px solid #8a8a8a; box-shadow: 0 8px 28px rgba(0,0,0,.4);
+  font-family: "Segoe UI", "Microsoft JhengHei", Tahoma, sans-serif; font-size: 12px; color-scheme: light;
+}
+.w32 .cap { height: 30px; background: #fff; display: flex; align-items: center; padding-left: 10px; gap: 8px; border-bottom: 1px solid #dcdcdc; }
+.w32 .cap .ico { width: 14px; height: 14px; background: #2f6be4; border-radius: 2px; }
+.w32 .cap .grow { flex: 1; }
+.w32 .cap .x { width: 44px; height: 30px; display: grid; place-items: center; font-size: 13px; }
+.w32 .body { padding: 16px 16px 12px; }
+.w32 .body p { margin: 0 0 8px; line-height: 1.5; }
+.w32 input {
+  width: 100%; height: 23px; border: 1px solid #7a7a7a; background: #fff; padding: 0 4px; font-size: 13px; outline: 0; color: #000;
+  font-family: inherit; letter-spacing: 1px;
+}
+.w32 input:focus { border-color: #0078d7; }
+.w32 .small { color: #444; margin-top: 8px; line-height: 1.5; }
+.w32 .foot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px 14px; }
+.w32 .foot button { min-width: 75px; height: 23px; background: #e1e1e1; border: 1px solid #adadad; font-size: 12px; font-family: inherit; color: #000; }
+.w32 .foot button.def { border: 2px solid #0078d7; }
+.w32 .foot button[disabled] { color: #8a8a8a; }
+</style>
+</head>
+<body>
+
+<header class="pagebar">
+  <div class="pagebar-top">
+    <h1>keepsay <span>・桌面版 mockup（M2 macOS／M3 Windows）</span></h1>
+    <div class="tabs" id="platTabs"><button data-plat="mac" class="on">macOS</button><button data-plat="win">Windows</button></div>
+    <button class="pill-btn" id="themeBtn" type="button">深色</button>
+  </div>
+</header>
+
+<!-- ======================= macOS ======================= -->
+<div class="platform on" id="plat-mac">
+  <section class="section">
+    <div class="sec-head">
+      <h2>選單列＋錄音浮條</h2>
+      <div class="switcher" data-scene-for="mac">
+        <button data-scene="menu">選單</button><button data-scene="rec">錄音中</button><button data-scene="proc">處理中</button><button data-scene="ins">已插入</button><button data-scene="fb">潤稿失敗</button>
+      </div>
+      <p>點選單列的 keepsay 圖示開關選單；在浮條上點一下可往下一個狀態走。</p>
+    </div>
+    <div class="fit" data-w="1040" data-h="600">
+      <div class="frame scene" id="mac-scene">
+        <div class="menubar">
+          <b>文字編輯</b><span>檔案</span><span>編輯</span><span>格式</span><span>顯示方式</span>
+          <span class="spacer"></span>
+          <button class="mb-icon on" id="mac-icon" aria-label="keepsay"></button>
+          <span class="mb-glyph"></span>
+          <span>10月24日 週六 上午9:41</span>
+        </div>
+        <div class="appwin" style="left:150px;top:70px;width:620px;height:380px">
+          <div class="titlebar"><span class="lights"><i></i><i></i><i></i></span><span style="flex:1;text-align:center;margin-right:52px">會議記錄</span></div>
+          <div class="doc" id="mac-doc"></div>
+        </div>
+        <div id="mac-menu-slot"></div>
+        <div id="mac-hud-slot"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <h2>設定視窗</h2>
+      <div class="switcher" data-pane-for="mac"></div>
+    </div>
+    <div class="fit" data-w="860" data-h="580">
+      <div class="frame backdrop">
+        <div class="setwin">
+          <div class="mac-toolbar">
+            <div class="top"><span class="lights"><i style="background:#ec6a5e"></i><i style="background:#f4bf4f"></i><i style="background:#61c554"></i></span><span class="ttl" id="mac-pane-title">一般</span></div>
+            <div class="mac-tabs" id="mac-tabs"></div>
+          </div>
+          <div class="pane" id="mac-pane"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ======================= Windows ======================= -->
+<div class="platform win-font" id="plat-win">
+  <section class="section">
+    <div class="sec-head">
+      <h2>系統匣＋錄音浮條（Win11）</h2>
+      <div class="switcher" data-scene-for="win">
+        <button data-scene="menu">選單</button><button data-scene="rec">錄音中</button><button data-scene="proc">處理中</button><button data-scene="ins">已插入</button><button data-scene="fb">潤稿失敗</button>
+      </div>
+      <p>點系統匣的 keepsay 圖示開關選單；在浮條上點一下可往下一個狀態走。</p>
+    </div>
+    <div class="fit" data-w="1040" data-h="600">
+      <div class="frame scene" id="win-scene">
+        <div class="appwin" style="left:170px;top:40px;width:640px;height:400px;border-radius:8px">
+          <div class="titlebar" style="background:var(--win-side)"><span style="flex:1">會議記錄.txt － 記事本</span><span style="letter-spacing:22px">─ □ ✕</span></div>
+          <div class="doc" id="win-doc"></div>
+        </div>
+        <div id="win-menu-slot"></div>
+        <div id="win-hud-slot"></div>
+        <div class="taskbar">
+          <div class="tb-center"><i></i><i></i><i class="active"></i><i></i><i></i></div>
+          <div class="tray">
+            <span class="ti">⌃</span>
+            <button class="ti on" id="win-icon" aria-label="keepsay"></button>
+            <span class="ti"><span class="mb-glyph" style="width:14px;height:9px"></span></span>
+            <span class="clock">上午 09:41<br>2026/10/24</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <h2>設定視窗</h2>
+      <div class="switcher" data-pane-for="win"></div>
+      <p>設定頁本身是 WebView。金鑰輸入改由原生 Win32 對話框處理（到「金鑰」頁按「更換…」）。</p>
+    </div>
+    <div class="fit" data-w="860" data-h="580">
+      <div class="frame backdrop">
+        <div class="setwin" style="border-radius:8px">
+          <div class="win-titlebar"><span class="okc" style="width:16px;height:16px;border-radius:4px"></span><span class="grow">keepsay 設定</span><span class="caps"><span>─</span><span>□</span><span>✕</span></span></div>
+          <div class="win-body">
+            <nav class="win-nav" id="win-nav"></nav>
+            <div class="win-content" id="win-pane"></div>
+          </div>
+          <div class="native-layer" id="native-layer">
+            <div class="native-wrap">
+              <div class="native-callout">原生對話框（金鑰不進 WebView）</div>
+              <div class="w32" role="dialog" aria-label="keepsay — 輸入 API 金鑰">
+                <div class="cap"><span class="ico"></span><span class="grow">keepsay — 輸入 API 金鑰</span><span class="x" id="w32-x">✕</span></div>
+                <div class="body">
+                  <p>請貼上你的 Claude API 金鑰：</p>
+                  <input type="password" id="w32-input" autocomplete="off" spellcheck="false">
+                  <div class="small">金鑰會存入 Windows 認證管理員（DPAPI）。<br>儲存後只顯示末四碼，無法再查看。</div>
+                </div>
+                <div class="foot"><button class="def" id="w32-ok" disabled>確定</button><button id="w32-cancel">取消</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<p class="footnote">互動 mockup：所有金額與文字皆為示意。桌面版沒有歷史清單、帳號、同步、遙測或自動更新；唯一的網路連線是潤稿時的 api.anthropic.com，以及你手動按下的模型下載。</p>
+
+<script>
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  /* ---- theme ---- */
+  var root = document.documentElement, themeBtn = $('#themeBtn');
+  function isDark() { var t = root.getAttribute('data-theme'); if (t) return t === 'dark'; return matchMedia('(prefers-color-scheme: dark)').matches; }
+  function syncTheme() { themeBtn.textContent = isDark() ? '淺色' : '深色'; }
+  themeBtn.onclick = function () { root.setAttribute('data-theme', isDark() ? 'light' : 'dark'); syncTheme(); };
+  syncTheme();
+
+  /* ---- fit frames ---- */
+  function fitAll() {
+    $$('.platform.on .fit').forEach(function (f) {
+      var w = +f.dataset.w, h = +f.dataset.h;
+      var cs = getComputedStyle(f.parentElement);
+      var avail = f.parentElement.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      var s = Math.min(1, avail / w);
+      f.style.width = (w * s) + 'px'; f.style.height = (h * s) + 'px';
+      f.firstElementChild.style.transform = 'scale(' + s + ')';
+    });
+  }
+  addEventListener('resize', fitAll);
+
+  /* ---- platform tabs ---- */
+  $('#platTabs').onclick = function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    $$('#platTabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    $$('.platform').forEach(function (p) { p.classList.toggle('on', p.id === 'plat-' + b.dataset.plat); });
+    fitAll();
+  };
+
+  /* ---- shared state ---- */
+  var MODES = [['raw', '原文'], ['light', '標點'], ['polish', '潤稿'], ['formal', '正式']];
+  var MODE_DESC = { raw: '只轉寫，不連網', light: '補標點、分段，不改字', polish: '修順語句，保留原意', formal: '改成正式書面語' };
+  var S = {
+    mode: 'polish', hasKey: true, fp: 'a1B2', toggle: true,
+    glossary: ['keepsay', 'Kevin', 'TestFlight', 'Claude', 'WebView'], gSel: -1,
+    model: 'small',
+    models: [
+      { id: 'base', name: 'Whisper base', size: '142 MB', note: '最快', have: false },
+      { id: 'small', name: 'Whisper small', size: '466 MB', note: '建議', have: true },
+      { id: 'turbo', name: 'Whisper large-v3-turbo', size: '1.6 GB', note: '最準', have: false }
+    ],
+    mic: true, ax: false, macEdit: false
+  };
+  var SHORT = { mac: '⌥Space', win: 'Ctrl+Alt+Space' };
+  var RAW = '明天下午三點跟 kevin 開會 討論 keep say 的 ios 鍵盤擴充 嗯 記得先準備 test flight 的版本';
+  var POL = '明天下午三點跟 Kevin 開會，討論 keepsay 的 iOS 鍵盤擴充，記得先準備 TestFlight 的版本。';
+  function modeName(m) { return MODES.filter(function (x) { return x[0] === m; })[0][1]; }
+
+  var WAVE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>';
+  var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+  $('#mac-icon').innerHTML = WAVE; $('#win-icon').innerHTML = WAVE;
+
+  /* ---- scenes (menu + overlay) ---- */
+  var scene = { mac: 'menu', win: 'menu' }, menuOpen = { mac: true, win: true }, timers = { mac: [], win: [] };
+  function clear(p) { timers[p].forEach(function (t) { clearInterval(t); clearTimeout(t); }); timers[p] = []; }
+
+  function menuHTML(p) {
+    var status = { menu: '就緒', rec: '錄音中', proc: '處理中', ins: '就緒', fb: '就緒' }[scene[p]];
+    var h = '<div class="head"><div class="t"><span class="dot' + (scene[p] === 'rec' ? ' on' : '') + '"></span>keepsay・' + status + '</div>' +
+      '<div class="s">按 ' + SHORT[p] + ' 開始／停止說話</div></div><div class="sep"></div><div class="label">模式</div>';
+    MODES.forEach(function (m, i) {
+      var dis = !S.hasKey && m[0] !== 'raw';
+      h += '<button class="mi" data-mode="' + m[0] + '"' + (dis ? ' disabled style="opacity:.4"' : '') + '><span class="check">' + (S.mode === m[0] ? '✓' : '') + '</span><span class="grow">' + m[1] + '</span><span class="kbd">' + (p === 'mac' ? '⌘' + (i + 1) : '') + '</span></button>';
+    });
+    h += '<div class="sep"></div>';
+    h += '<div class="mi muted"><span class="check"></span><span class="grow">' + (S.hasKey ? '本月 US$1.24 ／ 5.00' : '未設定金鑰・只用原文') + '</span></div>';
+    h += '<div class="sep"></div>';
+    h += '<button class="mi" data-act="settings"><span class="check"></span><span class="grow">設定…</span><span class="kbd">' + (p === 'mac' ? '⌘,' : '') + '</span></button>';
+    h += '<button class="mi" data-act="quit"><span class="check"></span><span class="grow">結束 keepsay</span><span class="kbd">' + (p === 'mac' ? '⌘Q' : '') + '</span></button>';
+    return h;
+  }
+
+  function hudHTML(p) {
+    var s = scene[p], k = '<span class="k">' + SHORT[p] + ' 停止</span>';
+    if (s === 'rec') {
+      var bars = ''; for (var i = 0; i < 12; i++) bars += '<i></i>';
+      return '<span class="recdot"></span><span class="bars">' + bars + '</span><span class="t" data-t>0:00</span>' + k;
+    }
+    if (s === 'proc') return '<span class="spin"></span><span data-ph>轉寫中…</span>';
+    if (s === 'ins') return '<span class="okc">' + CHECK + '</span><span>已插入・' + modeName(S.mode) + '</span>';
+    if (s === 'fb') return '<span class="okc warn"><b style="font-size:12px">!</b></span><span>潤稿失敗，已插入原文</span><span class="k">連線逾時</span>';
+    return '';
+  }
+
+  function docHTML(p) {
+    var s = scene[p], ins = '';
+    if (s === 'ins') ins = '<span class="ins">' + esc(S.mode === 'raw' ? RAW : POL) + '</span>';
+    if (s === 'fb') ins = '<span class="ins">' + esc(RAW) + '</span>';
+    return '<h4>週六待辦</h4>1. 確認 M2 的選單列設計<br>2. ' + ins + '<span class="caret"></span>';
+  }
+
+  function renderScene(p) {
+    clear(p);
+    var sc = $('#' + p + '-scene');
+    $('#' + p + '-doc').innerHTML = docHTML(p);
+    $$('[data-scene-for="' + p + '"] button').forEach(function (b) { b.classList.toggle('on', b.dataset.scene === scene[p]); });
+    // menu
+    var ms = $('#' + p + '-menu-slot');
+    var showMenu = menuOpen[p];
+    $('#' + p + '-icon').classList.toggle('on', showMenu);
+    $('#' + p + '-icon').classList.toggle('live', scene[p] === 'rec' || scene[p] === 'proc');
+    if (showMenu) {
+      ms.innerHTML = '<div class="menu' + (p === 'win' ? ' win' : '') + '" style="' +
+        (p === 'mac' ? 'right:150px;top:31px' : 'right:70px;bottom:56px') + '">' + menuHTML(p) + '</div>';
+    } else ms.innerHTML = '';
+    // hud
+    var hs = $('#' + p + '-hud-slot');
+    var hh = hudHTML(p);
+    hs.innerHTML = hh ? '<div class="hud' + (p === 'win' ? ' win' : '') + '" data-hud style="bottom:' + (p === 'mac' ? '40px' : '64px') + ';cursor:pointer">' + hh + '</div>' : '';
+    var hud = $('[data-hud]', hs);
+    if (scene[p] === 'rec') {
+      var start = Date.now(), bars = $$('.bars i', hud);
+      timers[p].push(setInterval(function () {
+        bars.forEach(function (b, i) { var c = 1 - Math.abs(i - 5.5) / 7; b.style.height = Math.max(4, Math.round((Math.random() * .7 + .3) * 22 * c)) + 'px'; });
+        var sec = Math.floor((Date.now() - start) / 1000); $('[data-t]', hud).textContent = Math.floor(sec / 60) + ':' + ('0' + sec % 60).slice(-2);
+      }, 110));
+    }
+    if (scene[p] === 'proc') {
+      var raw = S.mode === 'raw' || !S.hasKey;
+      timers[p].push(setTimeout(function () {
+        if (raw) { go(p, 'ins'); return; }
+        $('[data-ph]', hud).textContent = '潤稿中…';
+        timers[p].push(setTimeout(function () { go(p, 'ins'); }, 1200));
+      }, 1000));
+    }
+    if (scene[p] === 'ins' || scene[p] === 'fb') {
+      timers[p].push(setTimeout(function () { var i = $('.ins', sc); if (i) i.style.background = 'transparent'; }, 1400));
+    }
+  }
+  function go(p, s) {
+    scene[p] = s;
+    if (s === 'menu') menuOpen[p] = true;
+    else if (s === 'rec') menuOpen[p] = false;
+    renderScene(p);
+  }
+  var NEXT = { rec: 'proc', proc: 'ins', ins: 'rec', fb: 'rec', menu: 'rec' };
+  ['mac', 'win'].forEach(function (p) {
+    $('[data-scene-for="' + p + '"]').onclick = function (e) { var b = e.target.closest('button'); if (b) go(p, b.dataset.scene); };
+    $('#' + p + '-icon').onclick = function () { menuOpen[p] = !menuOpen[p]; renderScene(p); };
+    $('#' + p + '-scene').addEventListener('click', function (e) {
+      if (e.target.closest('[data-hud]')) { go(p, NEXT[scene[p]]); return; }
+      var mi = e.target.closest('.menu [data-mode]');
+      if (mi && !mi.disabled) { S.mode = mi.dataset.mode; renderAll(); return; }
+      var act = e.target.closest('.menu [data-act]');
+      if (act && act.dataset.act === 'settings') {
+        menuOpen[p] = false; renderScene(p);
+        $('#plat-' + p + ' .setwin').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if (act && act.dataset.act === 'quit') { menuOpen[p] = false; renderScene(p); }
+    });
+  });
+  addEventListener('keydown', function (e) {
+    if (e.altKey && e.code === 'Space') {
+      e.preventDefault();
+      var p = $('#plat-mac').classList.contains('on') ? 'mac' : 'win';
+      go(p, scene[p] === 'rec' ? 'proc' : 'rec');
+    }
+  });
+
+  /* ---- settings panes ---- */
+  var ICONS = {
+    general: '<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="7" cy="18" r="2" fill="currentColor"/>',
+    key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>',
+    glossary: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>',
+    budget: '<circle cx="12" cy="12" r="8"/><path d="M12 7v10M15 9.5c0-1-1.3-1.8-3-1.8s-3 .8-3 1.9 1.3 1.6 3 1.9 3 .9 3 1.9-1.3 1.9-3 1.9-3-.8-3-1.8"/>',
+    model: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+    privacy: '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>'
+  };
+  var PANES = [['general', '一般'], ['key', '金鑰'], ['glossary', '詞彙表'], ['budget', '預算'], ['model', '模型'], ['privacy', '隱私']];
+  var pane = { mac: 'general', win: 'general' };
+  function icon(n) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICONS[n] + '</svg>'; }
+  function seg(attr) {
+    return '<div class="seg">' + MODES.map(function (m) {
+      var dis = !S.hasKey && m[0] !== 'raw';
+      return '<button ' + attr + '="' + m[0] + '" class="' + (S.mode === m[0] ? 'on' : '') + '"' + (dis ? ' disabled style="opacity:.4"' : '') + '>' + m[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  var GUIDE = '<details class="guide"><summary>安全建議</summary><ol>' +
+    '<li><b>開專用 workspace</b>，只給 keepsay 用。</li><li><b>不綁付款方式</b>、<b>關閉自動儲值</b>。</li>' +
+    '<li>在 Console <b>設定花費上限</b>。</li><li><b>撤銷</b>：Console → API Keys → 停用或刪除。</li></ol></details>';
+
+  /* macOS pane bodies (form layout) */
+  function macPane(id) {
+    if (id === 'general') return '' +
+      row('預設模式', seg('data-setmode') + '<div class="help">' + MODE_DESC[S.mode] + '</div>') +
+      row('快捷鍵', '<span class="keycap">⌥ Space</span> <button class="btn" style="margin-left:6px">錄製新快捷鍵</button>') +
+      row('錄音方式', radio('toggle', true, '按一下開始，再按一下停止') + radio('toggle', false, '按住說話，放開停止')) +
+      '<div class="hr"></div>' +
+      row('登入時啟動', '<button class="tgl on" data-tgl></button>');
+    if (id === 'key') {
+      var body;
+      if (S.macEdit || !S.hasKey) {
+        body = '<div class="securefield"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' +
+          '<input type="password" id="mac-key-in" placeholder="sk-ant-…" autocomplete="off" spellcheck="false"></div>' +
+          '<div style="margin-top:10px;display:flex;gap:8px"><button class="btn primary" id="mac-key-save" disabled>儲存到鑰匙圈</button>' +
+          (S.hasKey ? '<button class="btn" id="mac-key-cancel">取消</button>' : '') + '</div>' +
+          '<div class="help">SecureField：輸入時不顯示、不能複製。儲存後只留末四碼指紋。</div>' + GUIDE;
+      } else {
+        body = '<span class="fp">…' + esc(S.fp) + '</span> <span style="color:var(--muted);margin-left:6px">已存於鑰匙圈</span>' +
+          '<div style="margin-top:10px;display:flex;gap:8px"><button class="btn" id="mac-key-replace">更換…</button><button class="btn" id="mac-key-del">刪除…</button></div>' +
+          '<div class="help">完整金鑰不會再顯示或複製出來。</div>' + GUIDE;
+      }
+      return row('Claude API 金鑰', body) + (S.hasKey ? '' : row('', '<div class="help" style="margin-top:0">未設定金鑰時只能使用「原文」模式，完全離線。</div>'));
+    }
+    if (id === 'glossary') return row('詞彙表', glossaryBox() + '<div class="help">人名、產品名、專有名詞。轉寫與潤稿時會照這裡的寫法。</div>');
+    if (id === 'budget') return budget(row);
+    if (id === 'model') return row('語音模型', modelBox() + '<div class="help">只在你按下時下載，完成後比對 SHA-256，不符就刪除。<br>位置：~/Library/Application Support/keepsay</div>');
+    if (id === 'privacy') return '' +
+      row('麥克風', perm(S.mic, 'mic')) +
+      row('輔助使用', perm(S.ax, 'ax') + '<div class="help">用來把文字插入游標位置。</div>') +
+      '<div class="hr"></div>' + row('', privacyCard());
+  }
+  function row(l, c) { return '<div class="form-row"><div class="lbl">' + l + '</div><div>' + c + '</div></div>'; }
+  function radio(name, val, label) { return '<div class="radio-line" data-radio="' + val + '"><span class="rd' + (S.toggle === val ? ' on' : '') + '"></span>' + label + '</div>'; }
+  function perm(ok, which) {
+    return ok ? '<span class="perm"><span class="dot on"></span>已允許</span>'
+      : '<span class="perm"><span class="dot"></span>未允許</span> <button class="btn" data-perm="' + which + '" style="margin-left:8px">開啟系統設定…</button>';
+  }
+  function privacyCard() {
+    return '<div class="privacy-card"><div class="p1">無遙測・不保存歷史・音訊不落地</div>' +
+      '<div class="p2">唯一的連線：api.anthropic.com（潤稿時），以及你手動按下的模型下載。<br>沒有帳號、同步或自動更新。</div></div>';
+  }
+  function glossaryBox() {
+    return '<div class="box" style="max-width:360px;border-radius:8px 8px 0 0">' + S.glossary.map(function (t, i) {
+      return '<div class="r' + (S.gSel === i ? ' sel' : '') + '" data-g="' + i + '" style="cursor:pointer"><span class="grow">' + esc(t) + '</span></div>';
+    }).join('') + '</div><div class="box-tools" style="max-width:360px"><button data-gadd>＋</button><button data-gdel>−</button><input data-gin placeholder="輸入詞彙後按 ＋ 或 Enter"></div>';
+  }
+  function modelBox() {
+    return '<div class="box" style="max-width:440px">' + S.models.map(function (m) {
+      var right = m.have ? '<span style="color:var(--accent);font-size:12px">✓ 已驗證</span>'
+        : m.dl ? '<span style="color:var(--muted);font-size:12px">' + m.dl + '</span>'
+          : '<button class="btn" data-dl="' + m.id + '">下載 ' + m.size + '</button>';
+      return '<div class="r" data-pick="' + m.id + '" style="cursor:pointer;min-height:44px"><span class="rd' + (S.model === m.id ? ' on' : '') + '"></span><div class="grow">' + m.name +
+        '<div class="sub">' + m.size + '・' + m.note + '</div></div>' + right + '</div>';
+    }).join('') + '</div>';
+  }
+  function budget(rowFn) {
+    return rowFn('本月用量', '<div style="font-variant-numeric:tabular-nums">US$1.24 <span style="color:var(--muted)">／ 5.00</span></div><div class="ubar"><i style="width:24.8%"></i><b style="left:60%"></b></div><div class="help" style="margin-top:2px">每月 1 日歸零・只在本機計算</div>') +
+      rowFn('軟上限', 'US$ <input class="num" value="3.00"> <span style="color:var(--muted);margin-left:6px">到了提醒一次</span>') +
+      rowFn('硬上限', 'US$ <input class="num" value="5.00"> <span style="color:var(--muted);margin-left:6px">到了停用潤稿，只出原文</span>') +
+      '<div class="hr"></div>' +
+      rowFn('價格表', '<div style="margin-bottom:6px;color:var(--muted)">每百萬 token<span class="tag">請核對官方定價</span></div>輸入 US$ <input class="num" value="3.00"> 輸出 US$ <input class="num" value="15.00">' +
+        '<div class="help">用量依這張表估算。官方調價時請自行更新。</div>');
+  }
+
+  /* Windows pane bodies (card layout) */
+  function winPane(id) {
+    var name = PANES.filter(function (x) { return x[0] === id; })[0][1];
+    var h = '<h3>' + name + (id === 'key' ? '' : '') + '</h3>';
+    if (id === 'general') h += card('預設模式', MODE_DESC[S.mode], seg('data-setmode')) +
+      card('快捷鍵', '開始／停止錄音', '<span class="keycap">Ctrl + Alt + Space</span>') +
+      cardCol('錄音方式', radio('toggle', true, '按一下開始，再按一下停止') + radio('toggle', false, '按住說話，放開停止')) +
+      card('登入時啟動', '', '<button class="tgl on" data-tgl></button>');
+    if (id === 'key') {
+      h += S.hasKey
+        ? card('Claude API 金鑰', '已存於 Windows 認證管理員・完整金鑰不會再顯示', '<span class="fp">…' + esc(S.fp) + '</span><button class="btn" id="win-key-replace">更換…</button><button class="btn" id="win-key-del">刪除</button>')
+        : card('Claude API 金鑰', '未設定・只能使用原文模式', '<button class="btn primary" id="win-key-replace">輸入金鑰…</button>');
+      h += cardCol('', '<div style="font-size:13px;color:var(--muted);line-height:1.6">按「' + (S.hasKey ? '更換…' : '輸入金鑰…') + '」會跳出 Windows 原生對話框。<br>金鑰只經過原生程式碼，不會進入這個設定頁（WebView）。</div>' + GUIDE);
+    }
+    if (id === 'glossary') h += cardCol('詞彙表', '<div class="sub" style="margin:0 0 10px">人名、產品名、專有名詞。</div>' + glossaryBox());
+    if (id === 'budget') h += '<div class="card col">' + budget(function (l, c) { return '<div class="form-row" style="grid-template-columns:110px 1fr"><div class="lbl" style="text-align:left">' + l + '</div><div>' + c + '</div></div>'; }) + '</div>';
+    if (id === 'model') h += cardCol('語音模型', modelBox() + '<div class="sub" style="margin-top:10px">只在你按下時下載，完成後比對 SHA-256，不符就刪除。<br>位置：%LOCALAPPDATA%\\keepsay\\models</div>');
+    if (id === 'privacy') h += card('麥克風', '設定 → 隱私權與安全性 → 麥克風', perm(S.mic, 'mic')) + cardCol('', privacyCard());
+    return h;
+  }
+  function card(t, sub, right) { return '<div class="card"><div class="grow">' + t + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div><div style="display:flex;gap:8px;align-items:center">' + right + '</div></div>'; }
+  function cardCol(t, body) { return '<div class="card col">' + (t ? '<div style="margin-bottom:8px">' + t + '</div>' : '') + body + '</div>'; }
+
+  function renderPanes() {
+    ['mac', 'win'].forEach(function (p) {
+      var sw = $('[data-pane-for="' + p + '"]');
+      sw.innerHTML = PANES.map(function (x) { return '<button data-pane="' + x[0] + '" class="' + (pane[p] === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') +
+        (p === 'win' ? '<button data-native>原生金鑰對話框</button>' : '');
+    });
+    $('#mac-tabs').innerHTML = PANES.map(function (x) { return '<button data-pane="' + x[0] + '" class="' + (pane.mac === x[0] ? 'on' : '') + '">' + icon(x[0]) + x[1] + '</button>'; }).join('');
+    $('#mac-pane-title').textContent = PANES.filter(function (x) { return x[0] === pane.mac; })[0][1];
+    $('#mac-pane').innerHTML = macPane(pane.mac);
+    $('#win-nav').innerHTML = PANES.map(function (x) { return '<button data-pane="' + x[0] + '" class="' + (pane.win === x[0] ? 'on' : '') + '">' + icon(x[0]) + x[1] + '</button>'; }).join('');
+    $('#win-pane').innerHTML = winPane(pane.win);
+    bindPane('mac'); bindPane('win');
+  }
+  function renderAll() { renderScene('mac'); renderScene('win'); renderPanes(); }
+
+  function bindPane(p) {
+    var host = p === 'mac' ? $('#mac-pane') : $('#win-pane');
+    $$('[data-setmode]', host).forEach(function (b) { b.onclick = function () { if (!b.disabled) { S.mode = b.dataset.setmode; renderAll(); } }; });
+    $$('[data-radio]', host).forEach(function (r) { r.onclick = function () { S.toggle = r.dataset.radio === 'true'; renderPanes(); }; });
+    $$('[data-tgl]', host).forEach(function (t) { t.onclick = function () { t.classList.toggle('on'); }; });
+    $$('[data-perm]', host).forEach(function (b) { b.onclick = function () { S[b.dataset.perm] = true; renderPanes(); }; });
+    // glossary
+    $$('[data-g]', host).forEach(function (r) { r.onclick = function () { S.gSel = +r.dataset.g; renderPanes(); }; });
+    var gin = $('[data-gin]', host);
+    var add = function () { var v = gin.value.trim(); if (v) { S.glossary.push(v); S.gSel = -1; renderPanes(); var n = $('[data-gin]', p === 'mac' ? $('#mac-pane') : $('#win-pane')); if (n) n.focus(); } };
+    if (gin) {
+      gin.onkeydown = function (e) { if (e.key === 'Enter') add(); };
+      $('[data-gadd]', host).onclick = add;
+      $('[data-gdel]', host).onclick = function () { if (S.gSel >= 0) { S.glossary.splice(S.gSel, 1); S.gSel = -1; renderPanes(); } };
+    }
+    // models
+    $$('[data-pick]', host).forEach(function (r) {
+      r.onclick = function (e) {
+        if (e.target.closest('[data-dl]')) return;
+        var m = S.models.filter(function (x) { return x.id === r.dataset.pick; })[0];
+        if (m.have) { S.model = m.id; renderPanes(); }
+      };
+    });
+    $$('[data-dl]', host).forEach(function (b) {
+      b.onclick = function () {
+        var m = S.models.filter(function (x) { return x.id === b.dataset.dl; })[0], pr = 0;
+        var t = setInterval(function () {
+          pr += 10; m.dl = pr < 100 ? '下載中 ' + pr + '%' : 'SHA-256 驗證中…'; renderPanes();
+          if (pr >= 100) { clearInterval(t); setTimeout(function () { m.dl = null; m.have = true; renderPanes(); }, 800); }
+        }, 160);
+      };
+    });
+    // keys
+    if (p === 'mac') {
+      var rep = $('#mac-key-replace'), del = $('#mac-key-del'), inp = $('#mac-key-in');
+      if (rep) rep.onclick = function () { S.macEdit = true; renderPanes(); $('#mac-key-in').focus(); };
+      if (del) del.onclick = function () {
+        if (del.dataset.armed) { S.hasKey = false; S.mode = 'raw'; renderAll(); return; }
+        del.dataset.armed = '1'; del.textContent = '確定刪除？';
+      };
+      if (inp) {
+        var save = $('#mac-key-save');
+        inp.oninput = function () { save.disabled = inp.value.trim().length < 8; };
+        save.onclick = function () { S.fp = inp.value.trim().slice(-4); S.hasKey = true; S.macEdit = false; if (S.mode === 'raw') S.mode = 'polish'; renderAll(); };
+        var c = $('#mac-key-cancel'); if (c) c.onclick = function () { S.macEdit = false; renderPanes(); };
+      }
+    } else {
+      var wr = $('#win-key-replace'), wd = $('#win-key-del');
+      if (wr) wr.onclick = openNative;
+      if (wd) wd.onclick = function () {
+        if (wd.dataset.armed) { S.hasKey = false; S.mode = 'raw'; renderAll(); return; }
+        wd.dataset.armed = '1'; wd.textContent = '確定刪除？';
+      };
+    }
+  }
+
+  ['mac', 'win'].forEach(function (p) {
+    $('[data-pane-for="' + p + '"]').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (b.hasAttribute('data-native')) { pane.win = 'key'; renderPanes(); openNative(); return; }
+      pane[p] = b.dataset.pane; S.macEdit = false; renderPanes();
+    });
+  });
+  $('#mac-tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { pane.mac = b.dataset.pane; S.macEdit = false; renderPanes(); } });
+  $('#win-nav').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { pane.win = b.dataset.pane; renderPanes(); } });
+
+  /* native dialog */
+  var nl = $('#native-layer'), wi = $('#w32-input'), wok = $('#w32-ok');
+  function openNative() { wi.value = ''; wok.disabled = true; nl.classList.add('on'); setTimeout(function () { wi.focus({ preventScroll: true }); }, 0); }
+  function closeNative() { wi.value = ''; nl.classList.remove('on'); }
+  wi.oninput = function () { wok.disabled = wi.value.trim().length < 8; };
+  wi.onkeydown = function (e) { if (e.key === 'Enter' && !wok.disabled) wok.click(); if (e.key === 'Escape') closeNative(); };
+  wok.onclick = function () { S.fp = wi.value.trim().slice(-4); S.hasKey = true; if (S.mode === 'raw') S.mode = 'polish'; closeNative(); renderAll(); };
+  $('#w32-cancel').onclick = closeNative; $('#w32-x').onclick = closeNative;
+
+  renderAll(); fitAll();
+})();
+</script>
+</body>
+</html>
