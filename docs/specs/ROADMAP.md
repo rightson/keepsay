@@ -98,7 +98,7 @@
 
 **US-M1-01** 身為維護者，我想要完成 V4 spike（模型 ID、`anthropic-version`、`/v1/models`、workspace 與 spend limit），以便 client 與 onboarding 用的是現行事實。
 - 驗收：① §15 V4 回填結論與官方文件連結 ② `MODEL_ALLOWLIST` / `DEFAULT_MODEL` 依結論更新 ③ §12 onboarding 文字依 Console 現況修正
-- 狀態：🚧 工作流 A ｜ 相依：§16-4
+- 狀態：🚧 工作流 A ｜ 相依：§16-4 ｜ ② 完成；結論在 [0006](../changes/0006-v4-api-facts.md)（`claude-haiku-5-5`、`anthropic-version: 2026-10-21`），① §15 回填與 ③ §12 修正待整合階段套用
 
 **US-M1-02** 身為維護者，我想要完成 V6 spike（security-framework 能否設 ThisDeviceOnly 與 SecAccessControl），以便決定 Apple vault 由 Rust 或 Swift 寫入。
 - 驗收：① §15 V6 回填 ② 若不可行，在 0005+ 記錄改由 Swift 寫入、Rust 讀取的方案
@@ -122,11 +122,11 @@
 
 **US-M1-07** 身為安全稽核者，我想要 `AnthropicClient` 以 reqwest + rustls-platform-verifier、`redirect::Policy::none()`、`no_proxy()`、10s/30s 逾時實作，以便 key 只會送到 BASE_URL（INV-3）。
 - 驗收：① `egress.rs` 的 redirect 測試解除 ignore 並通過（第二台 mock 收不到 `x-api-key`）② 非白名單 host 建構失敗 ③ proxy 只能由設定明確開啟 ④ 只有此型別能附加 key（code review 清單）
-- 狀態：🚧 工作流 A ｜ 相依：US-M1-01 ｜ 依賴與簽章已在 [0005](../changes/0005-m1-foundation.md)
+- 狀態：✅ 工作流 A（待合併）｜ 相依：US-M1-01 ｜ 依賴與簽章已在 [0005](../changes/0005-m1-foundation.md)；實作見 [0006](../changes/0006-v4-api-facts.md)
 
 **US-M1-08** 身為使用者，我想要 API 錯誤有一致的對應與重試，以便失敗時快速退回 raw 而不是卡住（§6.3）。
 - 驗收：① wiremock 覆蓋 401/403、429/529（retry-after 上限 2s、只重試一次）、400 額度不足、逾時 ② 錯誤訊息不含任何使用者內容
-- 狀態：🚧 工作流 A ｜ 相依：US-M1-07
+- 狀態：✅ 工作流 A（待合併）｜ 相依：US-M1-07 ｜ `core/tests/api_errors.rs`；402 與 429 spend cap 也對應 `BudgetExhausted`（[0006](../changes/0006-v4-api-facts.md)）
 
 **US-M1-09** 身為使用者，我想要 raw / light / polish / formal 四種模式的 prompt，以便依情境選擇潤稿強度（FR-4）。
 - 驗收：① raw 不呼叫 API ② polish system prompt 依 §6.5 ③ light、formal 的 prompt 寫入 docs/changes 並同步 §6.5（規格目前未定義）④ 單元測試確認標籤清除
