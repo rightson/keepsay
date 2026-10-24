@@ -1,6 +1,6 @@
-# keepsay 設計與實作提案 v0.3
+# keepsay 設計與實作提案 v0.4
 
-> v0.2 相對 v0.1 的變更以「（v0.2 變更，見 docs/changes/NNNN-…）」標示，v0.3 的變更以「（v0.3 變更，見 docs/changes/NNNN-…）」標示。變更紀錄放在 `docs/changes/`。
+> v0.2 相對 v0.1 的變更以「（v0.2 變更，見 docs/changes/NNNN-…）」標示，v0.3 的變更以「（v0.3 變更，見 docs/changes/NNNN-…）」標示，v0.4 的變更以「（v0.4 變更，見 docs/changes/NNNN-…）」標示。變更紀錄放在 `docs/changes/`。
 >
 > 給 Claude Code 的使用方式：
 > 1. 依「里程碑」順序實作，每個里程碑開工前先輸出實作計畫，完成後對照 DoD（完成定義）自我檢查。
@@ -151,7 +151,7 @@ key 存在使用者裝置上，就不可能完全防住同權限的惡意程式�
         KeepsayiOS/         主 App
         KeepsayKeyboard/    鍵盤 extension（M4b）
       windows/              Tauri 2 app（src-tauri/ + ui/）
-      models/manifest.toml  模型 URL、revision、SHA-256
+      models/manifest.json  模型 URL、revision、SHA-256（v0.4 變更，見 docs/changes/0005-m1-foundation.md）
       docs/
         specs/              PROPOSAL.md, THREAT_MODEL.md
         changes/            NNNN-slug.md 變更紀錄
@@ -204,7 +204,8 @@ key 存在使用者裝置上，就不可能完全防住同權限的惡意程式�
     }
 
 - Apple：使用 security-framework crate。class 為 kSecClassGenericPassword，service 為 "dev.rightson.keepsay.apikey"（v0.3 變更，見 docs/changes/0004-license-domain-hotkeys.md），屬性 WhenUnlockedThisDeviceOnly，synchronizable 設 false。iOS 不設定共享 access group，鍵盤 extension 因此讀不到。可選設定：加 SecAccessControl .userPresence，要求生物辨識。
-- Windows：使用 windows crate 的 CredWriteW / CredReadW，type 為 CRED_TYPE_GENERIC，persist 為 CRED_PERSIST_LOCAL_MACHINE，target 為 "keepsay/anthropic"。讀出後立即轉成 SecretString，並把原始 buffer 清零（CredFree 前覆寫）。
+- Windows：使用 windows crate 的 CredWriteW / CredReadW，type 為 CRED_TYPE_GENERIC，persist 為 CRED_PERSIST_LOCAL_MACHINE，target 為 "dev.rightson.keepsay/anthropic"（v0.4 變更，見 docs/changes/0005-m1-foundation.md）。讀出後立即轉成 SecretString，並把原始 buffer 清零（CredFree 前覆寫）。
+  - （v0.4 變更，見 docs/changes/0005-m1-foundation.md）Win32 FFI 需要 `unsafe`。整個 repo 只有 `core/src/vault/windows.rs` 可以使用，以檔案開頭的 `#![allow(unsafe_code)]` 開放；workspace lint 由 `forbid` 改為 `deny`（`forbid` 無法在局部放寬）。CI 的 `unsafe-scope` job 在其他任何 Rust 原始碼、Cargo manifest 或 cargo 設定出現 `unsafe_code` 時失敗。每個 `unsafe` 區塊都要有 `// SAFETY:` 註解。
 - 駐留策略：
   - 預設：每次請求時從 vault 讀取，用完立刻 drop，不快取。
   - 開啟生物辨識時：在記憶體快取，閒置 10 分鐘或螢幕鎖定就清除。
@@ -224,6 +225,7 @@ key 存在使用者裝置上，就不可能完全防住同權限的惡意程式�
   - 400 且訊息為額度不足 → BudgetExhausted。
   - 其他錯誤或逾時 → 退回 raw。
 - 測試用 endpoint 覆寫只存在 feature "test-endpoint" 底下。CI 檢查 release build 未啟用此 feature。
+- （v0.4 變更，見 docs/changes/0005-m1-foundation.md）整合測試用的 mock vault 只存在 feature "test-support" 底下，release build 同樣以 `compile_error!` 拒絕，CI 同樣檢查。
 
 ### 6.4 請求型別（INV-4 由型別保證）
 
@@ -297,7 +299,7 @@ user：
 
     trait SttEngine { fn transcribe(&self, pcm: &[f32], sr: u32, opts: &SttOptions) -> Result<String>; }
 
-- WhisperEngine（全平台）：whisper-rs（whisper.cpp；Apple 走 Metal）。預設模型 small 或 large-v3-turbo，由使用者依裝置效能選擇，模型清單寫在 models/manifest.toml。initial prompt 使用繁中範例句加詞彙表，讓輸出傾向繁體。
+- WhisperEngine（全平台）：whisper-rs（whisper.cpp；Apple 走 Metal）。keepsay-core 以 optional feature `whisper` 啟用，core 預設不開，CLI 預設開（v0.4 變更，見 docs/changes/0005-m1-foundation.md）。預設模型 small 或 large-v3-turbo，由使用者依裝置效能選擇，模型清單寫在 models/manifest.json（v0.4 變更，見 docs/changes/0005-m1-foundation.md）。initial prompt 使用繁中範例句加詞彙表，讓輸出傾向繁體。
 - AppleSpeechEngine（Swift 端實作，不經過 core）：SpeechAnalyzer（iOS/macOS 26+）或 SFSpeechRecognizer，強制 on-device。【待驗證 V1：zh-TW 支援程度與中英夾雜品質】。若不足，Apple 端預設改用 WhisperEngine。
 - 簡繁轉換：v1 優先靠 prompt 處理。若 raw 模式仍常出現簡體，評估引入 OpenCC 的 Rust 實作【待驗證 V7，且需依賴批准】。
 - 翻譯一律由潤稿階段負責，不使用 whisper 的 translate task（它只能翻成英文，且品質較差）。
@@ -369,6 +371,8 @@ user：
 
 也支援使用者手動匯入模型檔（同樣做 SHA-256 驗證），讓使用者可以完全不連下載來源。
 
+（v0.4 變更，見 docs/changes/0005-m1-foundation.md）manifest 改為 JSON（`models/manifest.json`），以白名單內的 serde_json 解析，不新增 TOML 依賴。manifest 編譯進 binary，沒有遠端 manifest。欄位：`schema_version`，以及 `models[]` 的 `id`、`name`、`url`（釘在不可變的 revision）、`revision`、`sha256`（小寫 hex，由維護者親自下載計算）、`size`（bytes，超過即中止）、`license`；未知欄位一律拒絕。
+
 ---
 
 ## 9. 供應鏈、CI 與發佈
@@ -412,7 +416,8 @@ user：
 - 請求型別測試（INV-4）：序列化 MessagesRequest，斷言 JSON 不含 "tools"、"tool_choice"。
 - 下載器測試（INV-7）：雜湊不符就拒絕；編譯期確認 ModelDownloader 不依賴 vault 模組（模組可見性 + 測試）。
 - 翻譯守門測試（v0.2 新增）：內容單位計算、跨語言長度比例、目標語言比例，以 proptest 與固定語料覆蓋。
-- CI 檢查：release build 不得啟用 test-endpoint feature。
+- CI 檢查：release build 不得啟用 test-endpoint、test-support feature（v0.4 變更，見 docs/changes/0005-m1-foundation.md）。
+- CI 檢查（v0.4 變更，見 docs/changes/0005-m1-foundation.md）：`unsafe_code` 只出現在 `core/src/vault/windows.rs`；keepsay-core 在 macOS 與 Windows runner 上編譯並測試（vault 平台程式碼）。
 - 手動測試清單：
   - 各平台插入相容性：瀏覽器、Electron App、Office、終端機。
   - 斷網時 raw 模式正常；斷網時翻譯快捷鍵輸出原文並提示。
@@ -462,6 +467,13 @@ user：
 Rust（core / cli / windows）：
 reqwest（rustls，關閉預設 features）、rustls-platform-verifier、tokio（只開 rt、macros、time）、serde、serde_json、secrecy、zeroize、thiserror、tracing、tracing-subscriber、uniffi、sha2、security-framework（僅 Apple target）、windows（僅 Windows target，最小 features）、whisper-rs、cpal（僅 Windows）、tauri 2、tauri-plugin-global-shortcut。
 開發用：wiremock、proptest、tempfile。
+
+（v0.4 變更，見 docs/changes/0005-m1-foundation.md）
+- 不新增依賴的項目：CLI 的 WAV 讀取自行實作（PCM 16-bit 整數與 32-bit 浮點，立體聲混成單聲道）；模型 manifest 改用 JSON，以 serde_json 解析。
+- rustls-platform-verifier 由 reqwest 0.13 的 `rustls` feature 帶入並作為預設驗證器，不另列為直接依賴；TLS 加密實作隨之為 aws-lc-rs。
+- tracing-subscriber 也作為 keepsay-core 的 dev-dependency，供測試擷取 log。
+- uniffi 暫不加入：授權為 MPL-2.0，不在 deny.toml 的允許清單，需另行決定（ROADMAP D-10）。
+- deny.toml 以「逐 crate 例外」允許 whisper-rs / whisper-rs-sys（Unlicense）與 webpki-root-certs（CDLA-Permissive-2.0），不放寬一般允許清單。
 
 Swift：v1 僅使用 Apple 系統框架。
 

@@ -11,7 +11,7 @@ Voice dictation with local STT and optional Claude polish/translate using the us
 ## Commands
 
 - Build: `cargo build --workspace`
-- Test: `cargo test --workspace` and `cargo test --workspace --all-features` (wiremock tests need `test-endpoint`)
+- Test: `cargo test --workspace` and `cargo test --workspace --all-features` (wiremock tests need `test-endpoint`; integration tests using `MockVault` need `test-support`). Core only, without whisper.cpp: `cargo test -p keepsay-core --features test-endpoint,test-support`
 - One test: `cargo test -p keepsay-core --test egress`
 - Lint: `cargo fmt --all` then `cargo clippy --workspace --all-targets --all-features -- -D warnings`
 - Supply chain: `cargo deny check` and `cargo vet --locked`
@@ -21,7 +21,7 @@ Voice dictation with local STT and optional Claude polish/translate using the us
 
 - IMPORTANT: YOU MUST NOT weaken any INV-* in PROPOSAL §3. If a change would weaken one, stop and ask, even when it seems harmless.
 - IMPORTANT: YOU MUST NOT add a dependency, or a feature on an existing one, that is not on the §14 whitelist. Ask first, with your reason and the alternatives. `cargo add` is denied in `.claude/settings.json` on purpose.
-- IMPORTANT: NEVER add a network request. The only egress points are `AnthropicClient` → `https://api.anthropic.com` and `ModelDownloader` → URLs in `models/manifest.toml` (§8).
+- IMPORTANT: NEVER add a network request. The only egress points are `AnthropicClient` → `https://api.anthropic.com` and `ModelDownloader` → URLs in `models/manifest.json` (§8).
 - NEVER print, log, or assert on a key, transcript, model output, or glossary. That covers tests, error messages, `Debug` impls, and comments. Log lengths and timings only.
 - NEVER add a function or IPC command that returns the key. Only `vault::fingerprint` (`…a1B2`) may leave the core.
 - NEVER add `tools`, `tool_choice`, or similar fields to `api::types`.
@@ -39,7 +39,7 @@ Voice dictation with local STT and optional Claude polish/translate using the us
 
 ## Code style
 
-- Rust 2024 edition. The toolchain is pinned in `rust-toolchain.toml`. `unsafe_code` is forbidden workspace-wide; ask before relaxing it, for example for Win32 FFI in vault.
+- Rust 2024 edition. The toolchain is pinned in `rust-toolchain.toml`. `unsafe_code` is denied workspace-wide. The only exception is `core/src/vault/windows.rs` (Win32 Credential Manager FFI, docs/changes/0005), which opts in with `#![allow(unsafe_code)]`; CI fails if `unsafe_code` appears in any other Rust file, manifest, or cargo config. Ask before adding any other exception, for example for SendInput or clipboard FFI in M3.
 - Errors use `CoreError` (thiserror). Variants never carry secret or user content.
 - Secrets are `secrecy::SecretString`. Call `expose_secret()` only at the point of use.
 - Security-relevant tests go in `core/tests/<invariant>.rs`. Unfinished ones are `#[ignore = "M<n>: reason"]`. Never delete them, and never ignore one to get CI green.
@@ -47,7 +47,9 @@ Voice dictation with local STT and optional Claude polish/translate using the us
 
 ## Gotchas
 
-- `test-endpoint` is the only way to point `AnthropicClient` anywhere else. A release build that enables it hits `compile_error!`, so `cargo test --release --all-features` fails by design.
+- `test-endpoint` is the only way to point `AnthropicClient` anywhere else. A release build that enables it (or `test-support`, which exposes `vault::mock::MockVault`) hits `compile_error!`, so `cargo test --release --all-features` fails by design.
+- `whisper` (core feature, on by default in keepsay-cli) builds whisper.cpp and needs cmake and clang. `cargo test --workspace` therefore builds it too; use `-p keepsay-core` to skip it.
+- No TOML, WAV, or directory-locating crate: the model manifest is JSON (serde_json), the CLI reads WAV by hand, and the platform layer passes config and budget file paths into the core.
 - `core/tests/downloader.rs` text-scans `src/downloader.rs` for `vault`, `secrecy`, `SecretString`, `AnthropicClient`, and `api::`. Do not write those words in non-comment code there.
 - `validate_base_url` is an exact string match on purpose. Do not "improve" it with URL parsing.
 - Hotkeys (V8/V9 decided, docs/changes/0004): Windows uses RegisterHotKey only (Alt+Shift+Z / Alt+Shift+X); do not add a keyboard hook or Raw Input. macOS fn+Z / fn+Shift+Z uses one active CGEventTap in a single isolated file whose callback reads only the Z keycode and the fn/Shift flags and stores nothing; Carbon ⌥Space / ⌥⇧Space is the fallback. Right Alt is deferred to v1.1+.

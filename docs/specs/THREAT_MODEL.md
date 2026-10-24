@@ -40,6 +40,7 @@
 - 情境：惡意依賴版本、被接管的 GitHub Action、維護者帳號被盜、發佈物被替換。
 - 對策：
   - 依賴白名單與人工批准（INV-9）。由 `deny.toml` 的 bans/sources 保證，`cargo vet` 稽核每個依賴版本。
+  - （v0.4 變更，見 docs/changes/0005-m1-foundation.md）M1 依賴依 §14 加入，features 最小化並以 `cargo tree -e features` 核對（無 native-tls、無系統 proxy）。授權例外只對指定 crate 放行。`unsafe` 只允許在 `core/src/vault/windows.rs`，由 CI `unsafe-scope` job 保證。測試後門 feature（`test-endpoint`、`test-support`）在 release build 以 `compile_error!` 拒絕，CI release-feature-guard 另外檢查。
   - Actions 釘 commit SHA，workflow `permissions: contents: read`，PR workflow 不使用 secret（CI 設定，人工 review）。
   - 只由 CI 發佈，附簽章與 provenance（INV-8，M5）。
   - 沒有自動更新（ADR-5），惡意版本無法自動推送到所有使用者。

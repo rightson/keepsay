@@ -10,21 +10,21 @@
 >
 > 狀態圖例：✅ 完成 ／ 🚧 進行中 ／ ⬜ 未開始 ／ ⏸ 卡住（註明等什麼）／ 🧑 需人工
 >
-> 最後更新：2026-10-24（0004 授權 / 網域 / 快捷鍵決策已套用，M0 完成）
+> 最後更新：2026-10-24（0005 M1 地基：unsafe 範圍、依賴、共用型別與模組分工；M1 平行實作開工）
 
 ## 進度總覽
 
 | 里程碑 | 目標 | 狀態 | 故事完成 | 卡點 |
 |--------|------|------|----------|------|
 | M0 專案骨架 | repo、CI、INV 測試骨架 | ✅ | 10 / 10（100%） | — |
-| M1 core 與 CLI | §13 M1：vault、client、polish、guard、budget、STT、downloader、CLI | ⬜ | 0 / 26（0%） | D-2 unsafe、D-3 依賴、V4 |
+| M1 core 與 CLI | §13 M1：vault、client、polish、guard、budget、STT、downloader、CLI | 🚧 | 1 / 26（4%） | V4、D-4 vet、D-10 uniffi |
 | M2 macOS | menu bar app 端到端 | ⬜ | 0 / 17（0%） | M1；§16-1 Apple 帳號 |
 | M3 Windows | Tauri tray app 端到端 | ⬜ | 0 / 13（0%） | M1；D-2；§16-2 簽章 |
 | M4a iOS 主 App | 錄音 → 潤稿 → 剪貼簿、App Intent | ⬜ | 0 / 6（0%） | M2（共用 KeepsayKit）；§16-1 |
 | M4b iOS 鍵盤 | session 模式 | ⬜ | 0 / 4（0%） | M4a；V3 |
 | M5 發佈加固 | provenance、簽章、套件管道 | ⬜ | 0 / 7（0%） | §16-1/2/3/6 |
 | v1.1+ / Backlog | v1 之後 | — | 0 / 8 | 依各項 |
-| **v1 合計（M0–M5）** | | | **10 / 83（約 12%）** | |
+| **v1 合計（M0–M5）** | | | **11 / 83（約 13%）** | |
 
 ## 需求對照（FR / INV → 故事）
 
@@ -51,7 +51,7 @@
 ## M0 專案骨架（§13 M0）
 
 **US-M0-01** 身為維護者，我想要 §5.2 的 workspace 結構（core、cli、apple/、windows/、models/、docs/），以便各平台在固定位置開工。
-- 驗收：① `cargo build --workspace` 通過 ② `rust-toolchain.toml` 釘版本 ③ workspace `unsafe_code = "forbid"`
+- 驗收：① `cargo build --workspace` 通過 ② `rust-toolchain.toml` 釘版本 ③ workspace `unsafe_code = "forbid"`（0005 改為 `"deny"`，只有 `core/src/vault/windows.rs` 例外）
 - 狀態：✅ ｜ 相依：— ｜ 見 [0003](../changes/0003-m0-skeleton.md)
 
 **US-M0-02** 身為維護者，我想要 CI 跑 fmt、clippy `-D warnings`、test（含 `--all-features`），以便每個 PR 自動把關。
@@ -94,105 +94,107 @@
 
 ## M1 keepsay-core 與 CLI（§13 M1；DoD：§11 自動化測試全過、金絲雀通過）
 
+> 平行實作：共用型別與簽章已在 [0005](../changes/0005-m1-foundation.md) 定好，分成五個工作流，各自只改自己的檔案（檔案清單見 0005「模組分工」）。A api：M1-01、07、08 ／ B polish：M1-09–13、16 ／ C vault：M1-02、04–06、21 ／ D downloader + budget + config：M1-14、15、18、19 ／ E stt + cli：M1-16、17、23、25。M1-20、21、22 在各工作流合併後的整合階段完成。
+
 **US-M1-01** 身為維護者，我想要完成 V4 spike（模型 ID、`anthropic-version`、`/v1/models`、workspace 與 spend limit），以便 client 與 onboarding 用的是現行事實。
 - 驗收：① §15 V4 回填結論與官方文件連結 ② `MODEL_ALLOWLIST` / `DEFAULT_MODEL` 依結論更新 ③ §12 onboarding 文字依 Console 現況修正
-- 狀態：⬜ ｜ 相依：§16-4
+- 狀態：🚧 工作流 A ｜ 相依：§16-4
 
 **US-M1-02** 身為維護者，我想要完成 V6 spike（security-framework 能否設 ThisDeviceOnly 與 SecAccessControl），以便決定 Apple vault 由 Rust 或 Swift 寫入。
 - 驗收：① §15 V6 回填 ② 若不可行，在 0005+ 記錄改由 Swift 寫入、Rust 讀取的方案
-- 狀態：⬜ ｜ 相依：—
+- 狀態：🚧 工作流 C ｜ 相依：—
 
 **US-M1-03** 身為安全稽核者，我想要 Win32 FFI 需要的 `unsafe` 有明確範圍，以便 Windows vault 能實作又不放寬整個 workspace。
 - 驗收：① docs/changes 記錄決策（例如只在 `core/src/vault/windows.rs` 以 `#[allow(unsafe_code)]` 開放，或改用安全封裝）② CLAUDE.md Code style 同步
-- 狀態：⏸ 等 D-2 ｜ 相依：D-2
+- 狀態：✅ ｜ 相依：D-2 ｜ 見 [0005](../changes/0005-m1-foundation.md)（只開放 `core/src/vault/windows.rs`，CI `unsafe-scope` 檢查）
 
 **US-M1-04** 身為使用者，我想要 key 存進 Keychain（ThisDeviceOnly、不同步、service `dev.rightson.keepsay.apikey`），以便 key 不落地明文、不進 iCloud（INV-1）。
 - 驗收：① `vault/apple.rs` 實作 `KeyVault` ② 屬性由 macOS 上的整合測試驗證 ③ 不設共享 access group（INV-10 前置）
-- 狀態：⬜ ｜ 相依：US-M1-02
+- 狀態：🚧 工作流 C ｜ 相依：US-M1-02 ｜ 骨架 `KeychainVault` 已在 [0005](../changes/0005-m1-foundation.md)
 
 **US-M1-05** 身為使用者，我想要 Windows 上 key 存進 Credential Manager（GENERIC、LOCAL_MACHINE），以便 key 不隨漫遊設定檔同步（INV-1）。
 - 驗收：① `vault/windows.rs` 實作 `KeyVault`，target 依 D-6 定名 ② CredFree 前覆寫 buffer ③ Windows CI runner 上跑整合測試
-- 狀態：⏸ 等 D-2 ｜ 相依：US-M1-03、D-6
+- 狀態：🚧 工作流 C ｜ 相依：US-M1-03 ✅、D-6 ✅（target `dev.rightson.keepsay/anthropic`）｜ 骨架 `CredManVault`、Windows CI runner（test-os）已在 [0005](../changes/0005-m1-foundation.md)
 
 **US-M1-06** 身為使用者，我想要 store / has / fingerprint / delete / verify 的 key 生命週期，以便驗證失敗的 key 不會被存下（FR-1）。
 - 驗收：① 格式檢查 → `GET /v1/models` → 存入，失敗不存 ② 401/403 回 `KeyInvalid` 且不自動刪除 ③ 只回 `vault::fingerprint`（INV-2）④ 預設不快取，用完 drop（§6.2）
-- 狀態：⬜ ｜ 相依：US-M1-04/05、US-M1-07
+- 狀態：🚧 工作流 C ｜ 相依：US-M1-04/05、US-M1-07（`AnthropicClient::verify_key`）
 
 **US-M1-07** 身為安全稽核者，我想要 `AnthropicClient` 以 reqwest + rustls-platform-verifier、`redirect::Policy::none()`、`no_proxy()`、10s/30s 逾時實作，以便 key 只會送到 BASE_URL（INV-3）。
 - 驗收：① `egress.rs` 的 redirect 測試解除 ignore 並通過（第二台 mock 收不到 `x-api-key`）② 非白名單 host 建構失敗 ③ proxy 只能由設定明確開啟 ④ 只有此型別能附加 key（code review 清單）
-- 狀態：⬜ ｜ 相依：US-M1-01
+- 狀態：🚧 工作流 A ｜ 相依：US-M1-01 ｜ 依賴與簽章已在 [0005](../changes/0005-m1-foundation.md)
 
 **US-M1-08** 身為使用者，我想要 API 錯誤有一致的對應與重試，以便失敗時快速退回 raw 而不是卡住（§6.3）。
 - 驗收：① wiremock 覆蓋 401/403、429/529（retry-after 上限 2s、只重試一次）、400 額度不足、逾時 ② 錯誤訊息不含任何使用者內容
-- 狀態：⬜ ｜ 相依：US-M1-07
+- 狀態：🚧 工作流 A ｜ 相依：US-M1-07
 
 **US-M1-09** 身為使用者，我想要 raw / light / polish / formal 四種模式的 prompt，以便依情境選擇潤稿強度（FR-4）。
 - 驗收：① raw 不呼叫 API ② polish system prompt 依 §6.5 ③ light、formal 的 prompt 寫入 docs/changes 並同步 §6.5（規格目前未定義）④ 單元測試確認標籤清除
-- 狀態：⬜ ｜ 相依：—
+- 狀態：🚧 工作流 B ｜ 相依：D-9
 
 **US-M1-10** 身為使用者，我想要「潤飾並翻譯」的 prompt 變體（en / zh-TW / ja），以便一次請求得到譯文（FR-8、ADR-9）。
 - 驗收：① 依 §6.5 翻譯變體與 `{target_style_rule}` ② `max_tokens` 用 ×3 公式（已有 `request_type.rs` 測試）③ 詞彙表拼寫保留
-- 狀態：⬜ ｜ 相依：US-M1-09
+- 狀態：🚧 工作流 B ｜ 相依：US-M1-09
 
 **US-M1-11** 身為使用者，我想要非翻譯模式的輸出守門，以便被注入或失控的輸出不會插入 App（§6.6、T5）。
 - 驗收：① 長度比例、標籤殘留、前言剝除規則 ② proptest 覆蓋 ③ 未通過時回傳 `fell_back_to_raw` 與原因
-- 狀態：⬜ ｜ 相依：—
+- 狀態：🚧 工作流 B ｜ 相依：—
 
 **US-M1-12** 身為使用者，我想要翻譯模式的守門（內容單位、跨語言比例、目標語言比例 ≥ 60%），以便不輸出半翻譯結果（FR-8）。
 - 驗收：① 沿用 `guard::content_units` ② 固定語料 + proptest ③ 0.3 / 3 / 60% 以語料校正，結果寫入 docs/changes
-- 狀態：⬜ ｜ 相依：US-M1-11、D-7
+- 狀態：🚧 工作流 B ｜ 相依：US-M1-11、D-7
 
 **US-M1-13** 身為使用者，我想要 `polish()` 串起 prompt、client、guard、budget，任何錯誤都退回 raw，以便永遠拿得到可用文字（FR-4、FR-8）。
 - 驗收：① `PolishResult` 含 `fell_back_to_raw`、`fallback_reason`、`usage` ② 翻譯在 raw / 無 key / 硬上限時輸出原文並給「翻譯需要 API」原因 ③ wiremock 端到端測試
-- 狀態：⬜ ｜ 相依：US-M1-08、10、12、14
+- 狀態：🚧 工作流 B ｜ 相依：US-M1-08、10、12、14
 
 **US-M1-14** 身為使用者，我想要依 API usage 累計 token、可編輯價目表、月軟 / 硬上限，以便費用可控（FR-6、§6.8）。
 - 驗收：① budget.json 帶 schema version，非機密 ② 硬上限時 `needs_api` 請求改走 raw ③ 每月 1 日歸零（單元測試注入時間）
-- 狀態：⬜ ｜ 相依：US-M1-15
+- 狀態：🚧 工作流 D ｜ 相依：US-M1-15
 
 **US-M1-15** 身為使用者，我想要非機密設定以 JSON 存在 App Support 目錄並帶 schema version，以便設定可攜且不含 key（§10、INV-1）。
 - 驗收：① 涵蓋模式、快捷鍵、目標語言、模型、詞彙表、價目表、預算、proxy ② 讀寫測試確認檔案不含金絲雀
-- 狀態：⬜ ｜ 相依：D-3（目錄定位）
+- 狀態：🚧 工作流 D ｜ 相依：D-3 ✅（路徑由呼叫端傳入，見 [0005](../changes/0005-m1-foundation.md)）
 
 **US-M1-16** 身為使用者，我想要自訂詞彙表同時注入 STT initial prompt 與潤稿 system prompt，以便專有名詞拼對（FR-7）。
 - 驗收：① 兩處注入點有單元測試（只斷言結構與長度，不斷言詞彙表內容）② 詞彙表不出現在 log 或錯誤訊息
-- 狀態：⬜ ｜ 相依：US-M1-09、US-M1-17
+- 狀態：🚧 工作流 B（prompt）、E（STT）｜ 相依：US-M1-09、US-M1-17
 
 **US-M1-17** 身為使用者，我想要 whisper-rs 在本機辨識台灣繁中與中英夾雜，以便語音不離開裝置（FR-3、§6.7）。
 - 驗收：① `stt/whisper.rs` 實作 `SttEngine`，Apple 走 Metal ② 繁中 initial prompt ③ 樣本 wav 的辨識測試（可標 `#[ignore]` 需模型檔，CI 另行處理）
-- 狀態：⬜ ｜ 相依：US-M1-18
+- 狀態：🚧 工作流 E ｜ 相依：US-M1-18 ｜ feature `whisper`（core 預設關、CLI 預設開）
 
-**US-M1-18** 身為維護者，我想要 `models/manifest.toml` 填入 small 與 large-v3-turbo 的固定 revision URL 與親自計算的 SHA-256，以便下載可驗證（INV-7）。
+**US-M1-18** 身為維護者，我想要 `models/manifest.json` 填入 small 與 large-v3-turbo 的固定 revision URL 與親自計算的 SHA-256，以便下載可驗證（INV-7）。
 - 驗收：① 每筆含 id、url、revision、sha256、size、license ② 雜湊由維護者下載後計算，PR 註明方法
-- 狀態：⬜ 🧑 ｜ 相依：—
+- 狀態：⬜ 🧑 ｜ 相依：— ｜ 檔案改為 `models/manifest.json`（[0005](../changes/0005-m1-foundation.md)），雜湊仍需維護者親自計算
 
 **US-M1-19** 身為安全稽核者，我想要 `ModelDownloader` 只抓 manifest 的 URL、驗證 SHA-256、支援手動匯入，以便下載器拿不到 key 也收不到被換掉的檔（INV-7、§8）。
 - 驗收：① `downloader.rs` 的 checksum 測試解除 ignore ② 另一個 reqwest Client，無 redirect 到 manifest 外的 host ③ `downloader.rs` 文字掃描仍通過 ④ 超過 size 中止
-- 狀態：⬜ ｜ 相依：US-M1-18、D-3（TOML 解析）
+- 狀態：🚧 工作流 D ｜ 相依：US-M1-18、D-3 ✅（manifest 改 JSON，serde_json 解析）
 
 **US-M1-20** 身為安全稽核者，我想要 tracing 只記事件、長度與耗時，panic hook 不記 payload，以便 log 與 crash 不洩漏（§6.9、INV-6）。
 - 驗收：① 自訂 panic hook 只記位置 ② 測試以 tracing-subscriber 擷取輸出 ③ 無任何遠端 sink
-- 狀態：⬜ ｜ 相依：—
+- 狀態：⬜ 整合階段（panic hook 放 core 共用檔，平行期間凍結；CLI 端 subscriber 由 E 設定）｜ 相依：—
 
 **US-M1-21** 身為安全稽核者，我想要金絲雀測試跑完所有正常與錯誤路徑並掃描 log、設定目錄、暫存目錄，以便 INV-1/2/6 有自動化證明（§11）。
 - 驗收：① `core/tests/canary.rs` 解除 ignore ② 金絲雀出現次數為 0 ③ 整合測試可用的 mock vault（目前 `mock.rs` 只在 `cfg(test)`，`tests/` 用不到，需改為 feature 或測試 helper）
-- 狀態：⬜ ｜ 相依：US-M1-06、13、14、15、20
+- 狀態：🚧 工作流 C（vault 部分）＋整合階段 ｜ 相依：US-M1-06、13、14、15、20 ｜ ③ 已完成：feature `test-support` 對整合測試開放 `MockVault`（[0005](../changes/0005-m1-foundation.md)）
 
 **US-M1-22** 身為安全稽核者，我想要 UniFFI 匯出 §6.1 介面，且沒有任何回傳 key 的函式，以便 Swift 只經手 key 一次（INV-2）。
 - 驗收：① `ffi.rs` 匯出 §6.1 全部函式（含 async `polish`）② 測試掃描匯出簽章，回傳型別不含 key ③ `store_key` 收下即轉 `SecretString`
-- 狀態：⬜ ｜ 相依：US-M1-06、13、17、19
+- 狀態：⏸ 等 D-10（uniffi 為 MPL-2.0）與各工作流完成 ｜ 相依：US-M1-06、13、17、19、D-10
 
 **US-M1-23** 身為貢獻者，我想要 `keepsay-cli <file.wav> [--mode] [--translate]`，以便不開 App 就能測整條管線（§13 M1）。
 - 驗收：① wav → 逐字稿 → 潤稿 / 潤稿並翻譯 ② 輸出只到 stdout，不寫檔、不記 log 內容 ③ key 經由 vault 取得，不接受命令列參數或環境變數
-- 狀態：⬜ ｜ 相依：US-M1-13、17、D-3（wav 解碼）
+- 狀態：🚧 工作流 E ｜ 相依：US-M1-13、17、D-3 ✅（WAV 自行實作）
 
 **US-M1-24** 身為安全稽核者，我想要匯入可信組織的 cargo-vet 稽核並逐步消化 exemptions，以便新增的 M1 依賴有人審過（INV-9）。
 - 驗收：① 由人決定要信任的來源（mozilla、google、bytecode-alliance…）② exemptions 數量在本 PR 前後列出 ③ 不由 agent 執行 certify / trust
-- 狀態：⬜ 🧑 ｜ 相依：D-4
+- 狀態：⬜ 🧑 ｜ 相依：D-4 ｜ 0005 後 `cargo vet --locked` 有 213 個未稽核依賴
 
 **US-M1-25** 身為安全稽核者，我想要自動檢查音訊與逐字稿不落地，以便 INV-5 不只靠 review。
 - 驗收：① STT 與 polish 路徑跑完後暫存與設定目錄無新檔（併入金絲雀掃描）② `stt/`、`polish/` 不使用 `std::fs` 寫入（文字掃描測試，比照 `downloader.rs`）
-- 狀態：⬜ ｜ 相依：US-M1-17、US-M1-21
+- 狀態：🚧 工作流 E ｜ 相依：US-M1-17、US-M1-21
 
 **US-M1-26** 身為維護者，我想要完成 V7 spike（OpenCC Rust 實作與依賴成本），以便決定 raw 模式的簡繁問題是否要引入新依賴。
 - 驗收：① 以 M1-17 的樣本量化簡體出現率 ② §15 V7 回填，需依賴時提 D-5
@@ -449,14 +451,15 @@
 | ID | 待決定事項 | 影響 | 狀態 |
 |----|------------|------|------|
 | D-1 | Windows 預設快捷鍵確切組合（0004 定為 Alt+Shift+Z / Alt+Shift+X） | US-M3-04、README、mockup | ✅ 已決定；M3 手動測試需確認 Alt+Shift 不觸發輸入語言切換 |
-| D-2 | 放寬 `unsafe_code`：Windows vault（CredReadW）、SendInput、剪貼簿格式、IME 都需要 Win32 FFI | US-M1-03/05、M3 | 🧑 |
-| D-3 | §14 白名單缺口：manifest 的 TOML 解析、CLI 的 wav 解碼、App Support 目錄定位（或自行實作） | US-M1-15/19/23 | 🧑 |
+| D-2 | 放寬 `unsafe_code`：Windows vault（CredReadW）、SendInput、剪貼簿格式、IME 都需要 Win32 FFI | US-M1-03/05、M3 | 🚧 vault 已批准（0005，只限 `core/src/vault/windows.rs`）；M3 的 SendInput / 剪貼簿 / IME 仍需 🧑 |
+| D-3 | §14 白名單缺口：manifest 的 TOML 解析、CLI 的 wav 解碼、App Support 目錄定位（或自行實作） | US-M1-15/19/23 | ✅ 0005：manifest 改 JSON、WAV 自行實作、路徑由呼叫端傳入 |
 | D-4 | cargo-vet 要信任哪些組織的稽核 | US-M1-24 | 🧑 |
 | D-5 | V7 結論後是否引入 OpenCC | US-BL-05 | 🧑（待 M1-26） |
-| D-6 | Windows CredMan target 是否也改為 `dev.rightson.keepsay.*` 風格（§6.2 仍為 `keepsay/anthropic`） | US-M1-05 | 🧑 |
+| D-6 | Windows CredMan target 是否也改為 `dev.rightson.keepsay.*` 風格（§6.2 仍為 `keepsay/anthropic`） | US-M1-05 | ✅ 0005：`dev.rightson.keepsay/anthropic` |
 | D-7 | 翻譯守門門檻校正結果是否接受 | US-M1-12 | 🧑（待語料） |
 | D-8 | push-to-talk 是否從 v1.1 提前到 M2 / M3 | US-BL-01、FR-2 | 🧑 |
 | D-9 | light / formal 模式的 prompt 內容（§6.5 未定義） | US-M1-09 | 🧑 |
+| D-10 | uniffi 授權為 MPL-2.0，不在 deny.toml 允許清單：是否加逐 crate 例外，或改用其他 FFI 方式 | US-M1-22、M2、M4a | 🧑 |
 
 §16 人工事項：
 
