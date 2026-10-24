@@ -167,6 +167,7 @@ const ALL_ERRORS: &[CoreError] = &[
     CoreError::KeyFormat,
     CoreError::KeyNotFound,
     CoreError::VaultUnavailable,
+    CoreError::VaultNotEntitled,
     CoreError::DisallowedHost,
     CoreError::Network,
     CoreError::Timeout,
@@ -186,6 +187,50 @@ const ALL_ERRORS: &[CoreError] = &[
     CoreError::Io(io::ErrorKind::NotFound),
     CoreError::Unsupported,
 ];
+
+/// Exhaustive on purpose (no `_` arm): adding a `CoreError` variant fails to
+/// compile here until it is also added to [`ALL_ERRORS`].
+fn variant_index(e: CoreError) -> usize {
+    use CoreError::*;
+    match e {
+        KeyInvalid => 0,
+        KeyFormat => 1,
+        KeyNotFound => 2,
+        VaultUnavailable => 3,
+        VaultNotEntitled => 4,
+        DisallowedHost => 5,
+        Network => 6,
+        Timeout => 7,
+        RateLimited => 8,
+        BudgetExhausted => 9,
+        ApiStatus(_) => 10,
+        InvalidResponse => 11,
+        ModelNotAllowed => 12,
+        GuardRejected => 13,
+        HardLimitReached => 14,
+        AudioFormat => 15,
+        Stt => 16,
+        ModelUnknown => 17,
+        ModelHash => 18,
+        ModelTooLarge => 19,
+        Config => 20,
+        Io(_) => 21,
+        Unsupported => 22,
+    }
+}
+const VARIANT_COUNT: usize = 23;
+
+#[test]
+fn all_errors_lists_every_variant() {
+    let mut seen = [false; VARIANT_COUNT];
+    for e in ALL_ERRORS {
+        seen[variant_index(*e)] = true;
+    }
+    assert!(
+        seen.iter().all(|s| *s),
+        "ALL_ERRORS misses a CoreError variant"
+    );
+}
 
 // ------------------------------------------------------------------ tests
 
@@ -240,7 +285,11 @@ async fn vault_paths_never_leak_the_canary() {
     canary.render(&check_format(&SecretString::from("sk-ant-")).expect_err("short"));
 
     // Storage refuses (locked keychain, missing entitlement).
-    for err in [CoreError::VaultUnavailable, CoreError::Unsupported] {
+    for err in [
+        CoreError::VaultUnavailable,
+        CoreError::VaultNotEntitled,
+        CoreError::Unsupported,
+    ] {
         let failing = MockVault::failing(err);
         let e = store_key(&failing, canary_key(), async |_k: &SecretString| Ok(()))
             .await

@@ -181,10 +181,9 @@ async fn run(cli: &Cli) -> Result<()> {
         Command::KeySet => cmd_key_set(cli).await,
         Command::KeyStatus => {
             let v = open_vault(cli, false)?;
-            if v.exists() {
-                eprintln!("key stored: {}", stored_fingerprint(v.as_ref())?);
-            } else {
-                eprintln!("no key stored");
+            match vault::stored_fingerprint(v.as_ref())? {
+                Some(fp) => eprintln!("key stored: {fp}"),
+                None => eprintln!("no key stored"),
             }
             Ok(())
         }
@@ -196,11 +195,11 @@ async fn run(cli: &Cli) -> Result<()> {
         Command::KeyVerify => {
             let v = open_vault(cli, true)?;
             let config = load_config(&data_dir(cli)?)?;
-            let client = AnthropicClient::new(config.proxy.as_deref())?;
-            let key = v.load()?;
-            let fp = vault::fingerprint(&key);
-            client.verify_key(&key).await?;
-            drop(key);
+            let client = api_client(&config)?;
+            let fp = vault::stored_fingerprint(v.as_ref())?.ok_or(CoreError::KeyNotFound)?;
+            // The client reads the key from the vault itself; the CLI only
+            // ever sees the fingerprint (INV-2).
+            client.verify_stored_key(v.as_ref()).await?;
             eprintln!("key {fp} is valid");
             Ok(())
         }
@@ -327,9 +326,9 @@ async fn cmd_polish(
         Ok(v) => v,
         Err(e) => return fall_back(&transcript, &e),
     };
-    let client = match AnthropicClient::new(config.proxy.as_deref()) {
+    let client = match api_client(&config) {
         Ok(c) => c,
-        Err(e) => return fall_back(&transcript, &CliError::Core(e)),
+        Err(e) => return fall_back(&transcript, &e),
     };
 
     let now = current_month();
@@ -358,8 +357,14 @@ async fn cmd_polish(
 /// FR-4: any error before polishing still yields the raw transcript.
 fn fall_back(transcript: &str, e: &CliError) -> Result<()> {
     eprintln!("note: output is the raw transcript ({e})");
-    if matches!(e, CliError::Core(CoreError::Unsupported)) {
-        eprintln!("hint: this platform has no secure storage backend; try --dev-mock-vault");
+    match e {
+        CliError::Core(CoreError::Unsupported) => {
+            eprintln!("hint: this platform has no secure storage backend; try --dev-mock-vault")
+        }
+        CliError::Core(CoreError::VaultNotEntitled) => eprintln!(
+            "hint: this unsigned binary cannot use the data protection keychain; try --dev-mock-vault"
+        ),
+        _ => {}
     }
     emit_result(transcript);
     Ok(())
@@ -368,13 +373,10 @@ fn fall_back(transcript: &str, e: &CliError) -> Result<()> {
 async fn cmd_key_set(cli: &Cli) -> Result<()> {
     let v = open_vault(cli, false)?;
     let key = secret_input::read_key()?.ok_or(CliError::Msg("no key entered"))?;
-    vault::check_format(&key)?;
     let config = load_config(&data_dir(cli)?)?;
-    let client = AnthropicClient::new(config.proxy.as_deref())?;
-    // FR-1: verify online first; a key that fails is not stored.
-    client.verify_key(&key).await?;
-    let fp = vault::fingerprint(&key);
-    v.store(key)?;
+    let client = api_client(&config)?;
+    // FR-1: format check, then verify online; a key that fails is not stored.
+    let fp = vault::store_key(v.as_ref(), key, async |k| client.verify_key(k).await).await?;
     eprintln!("key {fp} verified and stored");
     if cli.dev_mock_vault {
         eprintln!("(in memory only: it is gone when this command exits)");
@@ -382,11 +384,19 @@ async fn cmd_key_set(cli: &Cli) -> Result<()> {
     Ok(())
 }
 
-/// The fingerprint of the stored key. The key is dropped (and zeroized)
-/// before this returns; only the fingerprint leaves.
-fn stored_fingerprint(v: &dyn KeyVault) -> Result<vault::Fingerprint> {
-    let key = v.load()?;
-    Ok(vault::fingerprint(&key))
+/// The production client (`https://api.anthropic.com`, user's explicit proxy
+/// only). Builds with the `test-endpoint` feature (debug only; the core
+/// refuses it in release) may point it at a loopback wiremock server through
+/// `KEEPSAY_DEV_API_ENDPOINT`, for `cli/tests/cli_api.rs`. The variable names
+/// an endpoint, never a key.
+fn api_client(config: &Config) -> Result<AnthropicClient> {
+    #[cfg(feature = "test-endpoint")]
+    if let Some(url) = std::env::var_os("KEEPSAY_DEV_API_ENDPOINT") {
+        eprintln!("WARNING: test-endpoint build: using a loopback API endpoint");
+        let url = url.to_str().ok_or(CoreError::DisallowedHost)?;
+        return Ok(AnthropicClient::with_test_endpoint(url)?);
+    }
+    Ok(AnthropicClient::new(config.proxy.as_deref())?)
 }
 
 /// The OS vault, or with `--dev-mock-vault` an in-memory one. When

@@ -784,10 +784,12 @@ dependencies = [
  "keepsay-core",
  "proptest",
  "secrecy",
+ "serde_json",
  "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "wiremock",
 ]
 
 [[package]]

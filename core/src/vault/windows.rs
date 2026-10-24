@@ -7,6 +7,13 @@
 //! is stored as its UTF-8 bytes. Every buffer CredReadW returns is wiped
 //! before CredFree, and the copy handed to CredWriteW is wiped after.
 //!
+//! Replacing a key is a single `CredWriteW` on the same target and type,
+//! which overwrites the credential in one call: either the new blob (with
+//! `CRED_PERSIST_LOCAL_MACHINE`) is stored, or the call fails and the old
+//! credential is left as it was. There is no delete-then-write window, unlike
+//! the Keychain, which needs an explicit protocol (`apple.rs`,
+//! docs/changes/0014).
+//!
 //! This is the only file in the repository allowed to use `unsafe`
 //! (docs/changes/0005). Keep every `unsafe` block minimal and give each one a
 //! `// SAFETY:` comment. CI fails if the attribute below appears anywhere else.

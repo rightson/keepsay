@@ -1,8 +1,5 @@
 //! Error type shared by every module and across the FFI boundary.
 //!
-//! FROZEN during M1 parallel work (docs/changes/0005): add a variant only by
-//! coordinating with every workstream.
-//!
 //! Variants never carry the key, transcripts, model output, glossary, file
 //! paths, URLs, or upstream error messages (INV-2, §6.9). Only fixed
 //! descriptions, HTTP status codes and `std::io::ErrorKind` are allowed.
@@ -23,6 +20,12 @@ pub enum CoreError {
     /// The OS secure storage refused or failed (Keychain / Credential Manager).
     #[error("secure storage is unavailable")]
     VaultUnavailable,
+    /// The binary is not signed with the entitlement the OS secure storage
+    /// requires (macOS data protection keychain: `keychain-access-groups`,
+    /// `errSecMissingEntitlement`). Typical for the unsigned dev CLI and
+    /// `cargo test`. Never answered with a weaker store (docs/changes/0008).
+    #[error("this build is not entitled to use secure storage (unsigned binary?)")]
+    VaultNotEntitled,
 
     // --- network / API ---
     /// A base URL or download URL that is not on the hardcoded allowlist.
