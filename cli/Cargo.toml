@@ -1,0 +1,19 @@
+[package]
+name = "keepsay-cli"
+description = "Developer tool for keepsay: wav file -> transcript -> polish."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "keepsay-cli"
+path = "src/main.rs"
+
+[dependencies]
+keepsay-core = { path = "../core" }
+
+[lints]
+workspace = true
