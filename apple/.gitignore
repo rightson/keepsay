@@ -1,0 +1,10 @@
+# Produced by apple/scripts/build-core.sh; never committed.
+/build/
+/KeepsayKit/Frameworks/
+/KeepsayKit/Sources/KeepsayCoreBindings/
+# SwiftPM / Xcode
+.build/
+.swiftpm/
+*.xcuserstate
+xcuserdata/
+DerivedData/
