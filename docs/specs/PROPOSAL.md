@@ -146,6 +146,7 @@ key 存在使用者裝置上，就不可能完全防住同權限的惡意程式�
         tests/              INV 測試（canary、egress、request type、downloader、api_errors、polish_*、budget_ledger、config_file、no_disk_writes）
       cli/                  keepsay-cli：開發用測試工具（錄音檔 → 潤稿）
         src/                main.rs, args.rs（手寫參數解析）, wav.rs（WAV 讀取）, secret_input.rs, session_vault.rs（--dev-mock-vault，僅 debug build）（v0.4 變更，見 docs/changes/0010-stt-cli.md）
+      uniffi-bindgen/       keepsay-uniffi-bindgen：產生 Swift binding 的建置工具，不發佈（v0.4 變更，見 docs/changes/0019-swift-bindings.md）
       apple/
         Keepsay.xcodeproj
         KeepsayKit/         共用 Swift package（錄音、插入、UI 元件）
@@ -194,6 +195,13 @@ key 存在使用者裝置上，就不可能完全防住同權限的惡意程式�
         fallback_reason: Option<FallbackReason>,
         usage: Option<Usage>,
     }
+
+    // v0.4 變更，見 docs/changes/0019-swift-bindings.md
+    get_settings() -> Result<Settings, CoreError>        // config.json 的非機密欄位（不含 model、proxy）
+    save_settings(settings: Settings) -> Result<(), CoreError>
+    list_models() -> Result<Vec<ModelStatus>, CoreError> // manifest 模型 + 是否已安裝
+
+（v0.4 變更，見 docs/changes/0019-swift-bindings.md）Swift binding 由 workspace 內的建置工具 `keepsay-uniffi-bindgen`（`uniffi-bindgen/`，唯一開 uniffi `cli` feature 的 crate）從 keepsay-core 的 staticlib 產生；keepsay-core 的 crate-type 為 `lib` + `staticlib`。
 
 規則：不存在任何回傳 key 的函式。Code review 檢查清單必須包含這一條。
 
