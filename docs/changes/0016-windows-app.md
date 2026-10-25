@@ -95,3 +95,15 @@ M3 要在沒有 Windows 的 Linux 開發環境完成 Tauri 2 tray app。唯一�
 ## Status
 
 Proposed。
+
+## 人工批准：cargo-vet exemptions（2026-10-25）
+
+使用者於 2026-10-25 批准 §9 所列 Tauri / cpal 依賴樹的一次性 exemption。實際套用以 `cargo vet regenerate exemptions` 產生：
+
+- 新增 216 筆 exemption（§9 列出 220 個 crate 版本，其中 4 個已由新匯入的公開稽核涵蓋）；另有 1 筆既有 exemption 的 criteria 由 `safe-to-run` 調整為 `safe-to-deploy`。沒有移除任何 exemption。
+- `imports.lock` 為新 crate 拉入既有六個來源的稽核（mozilla 15、zcash 27、bytecode-alliance 8、isrg 4、embark-studios 1）。
+- 結果：`cargo vet --locked` → `106 fully audited, 41 partially audited, 375 exempted`。
+
+exemption 只減不增的原則不變；M5 起逐步以稽核取代。
+
+deny.toml 中由 M3 帶入、仍待使用者確認的項目：MPL-2.0 逐 crate 例外（cssparser、cssparser-macros、dtoa-short、selectors、option-ext）與 advisory 忽略 `RUSTSEC-2024-0370`（proc-macro-error，僅經 Tauri 的 Linux GTK 依賴，Windows build 不會編譯）。
