@@ -345,11 +345,11 @@
 
 **US-M4a-01** 身為 iOS 使用者，我想要 onboarding 設定或略過 key、下載模型，以便第一次就能用（FR-1、`mobile.html` ob-key / ob-model）。
 - 驗收：① SecureField 送出即清空 ② 略過時只能用 raw
-- 狀態：🚧 ｜ 相依：US-M2-04、US-M2-05 ｜ UI 完成（SecureField 送出即清空、§12 建議可收合、略過只能 raw）；store_key 待 KeepsayKit 連結，見 [0017](../changes/0017-ios-app.md)
+- 狀態：🚧 ｜ 相依：US-M2-04、US-M2-05 ｜ UI 完成（SecureField 送出即清空、§12 v0.4 建議可收合、略過只能 raw）；`store_key` 已改走 KeepsayKit（`KitCoreService`，離開 main thread）；實際寫入鑰匙圈待 CI 連結 core 與簽章實機，見 [0017](../changes/0017-ios-app.md)
 
 **US-M4a-02** 身為 iOS 使用者，我想要錄音 → STT → 潤稿 → 剪貼簿（localOnly、60 秒 expiration），以便貼到任何 App（FR-5、T6）。
 - 驗收：① `UIPasteboard` 設 localOnly 與 expirationDate ② 音訊只在記憶體（INV-5）
-- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 狀態機、`ClipboardPolicy`（`.localOnly`、`.expirationDate` 60 秒，XCTest）、記憶體錄音完成；STT / 潤稿待 core 連結
+- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 狀態機、`ClipboardPolicy`（`.localOnly`、`.expirationDate` 60 秒，XCTest）、記憶體錄音、經 KeepsayKit 的 STT / 潤稿呼叫完成（AppModel XCTest 用假 core）；真正的 core 待 XCFramework 進 CI，且 core 的 `stt_model` 需經 FFI 設定（0017）
 
 **US-M4a-03** 身為 iOS 使用者，我想要「潤飾」與「潤飾並翻譯」兩個 App 內動作與兩個 App Intent，以便綁 Action Button 或捷徑（FR-2、FR-8）。
 - 驗收：① 兩個 Intent 皆可從捷徑執行 ② 失敗時退回 raw 並提示
@@ -361,7 +361,7 @@
 
 **US-M4a-05** 身為 iOS 使用者，我想要設定頁（模式、目標語言、詞彙表、預算），以便與桌面一致（FR-6、FR-7）。
 - 驗收：① 對應 `mobile.html` settings
-- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 設定頁完成（fingerprint、更換 / 刪除、模式、目標語言、詞彙表、預算、價目表、模型、隱私）；值改由 core config 提供待連結
+- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 設定頁完成（fingerprint、更換 / 刪除、模式、目標語言、詞彙表、預算、價目表、模型、隱私）、軟上限每月提醒一次；設定已交給 KeepsayKit，但 core config 的 FFI 讀寫尚未提供（0017）
 
 **US-M4a-06** 身為使用者，我想要 TestFlight 內測版，以便實機試用。
 - 驗收：① CI 上傳 ② 隱私標示為「不收集資料」

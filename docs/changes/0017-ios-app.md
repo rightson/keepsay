@@ -41,6 +41,24 @@ M4a 要做 iOS 主 App：錄音 → 本機 STT → 潤稿 → 剪貼簿，加上
   - 確認 `.localOnly` 的資料不會出現在 Universal Clipboard。
 - 已知限制：沒有 App icon（asset catalog 留到發佈前再加）。Shortcuts 片語只有繁中。
 
+## 補充：接上 KeepsayKit（2026-10-25）
+
+KeepsayKit（M2）與 core 的 UniFFI 介面（0014）合併後，iOS App 改為透過 KeepsayKit 使用 core：
+
+1. **連結方式**：`KeepsayiOS.xcodeproj` 以 `XCLocalSwiftPackageReference`（`../KeepsayKit`）連結 KeepsayKit，只連到 App target，測試 target 不另外連結（避免同一個 static library 在 host App 與測試 bundle 各有一份）。KeepsayKit 的 `Package.swift` 在 `Frameworks/KeepsayCoreFFI.xcframework` 與產生的 bindings 都存在時才連結 core，否則 `CoreBridge.make()` 回傳 `UnavailableCore`（只能用原文模式、不存任何東西）。原本 App 內的 `UnlinkedCore` 移除。
+2. **`KitCoreService`**：`CoreService` 的唯一實作，也是 App 內唯一 `import KeepsayKit` 的檔案（ios-app.yml 新增文字掃描）。KeepsayKit 與 App 有同名型別（`AppSettings`、`PolishOutcome`、`BudgetSnapshot`…），這個檔案一律寫 `KeepsayKit.` 前綴，其他檔案看不到 KeepsayKit 的型別。
+3. **一律離開 main thread**：core 的 FFI 都是阻塞呼叫（`has_key` 也要讀鑰匙圈屬性），所以 `CoreService` 改成全部 async，`KitCoreService` 每個呼叫都包在 `Task.detached`。`AppModel` 的狀態（有沒有 key、fingerprint、預算、已安裝模型）一次讀成 `CoreStatus`，在進入前景、key 變更、每次聽寫後更新。開始錄音時用最後一次的狀態決定計畫；core 每次呼叫都會再檢查 key 與硬上限，所以狀態過期也無法繞過。
+4. **錯誤對應**：core 的 `CoreFailure` 轉成不含內容的 `CoreServiceError` / `FallbackReason`；`VaultNotEntitled`（未簽章，-34018）顯示「無法寫入鑰匙圈（未簽章的開發版）」，不退回其他儲存方式。轉寫錯誤不再先檢查「模型已安裝」，改由 core 回報（`ModelUnknown` / `ModelHash` → 「尚未下載語音模型」）。
+5. **初始化**：data dir 由 KeepsayKit 的 `UniffiCore` 決定（App 容器內的 Application Support/keepsay），App 不另外指定。設定變更時把非機密設定交給 core（`saveSettings`）。
+6. **其他**：軟上限每個月提醒一次（`SoftLimitNotice`，記在設定的 `softLimitWarnedMonth`，硬上限有自己的提示，不重複提醒）；§12 安全建議改為 v0.4 內容（專用的非預設 workspace、Billing → Spend limits；撤銷與自動儲值的 Console 位置尚未確認，所以不寫選單路徑）；onboarding 加步驟點；未連結 core 時設定頁顯示開發版提示。
+7. **測試**：`AppModelTests` 以假的 core 與錄音器測 key 流程（只看 fingerprint）、聽寫各路徑、翻譯沒有 key 時不呼叫 API、硬上限、Intent toggle、設定送到 core、軟上限只提醒一次；`KitCoreServiceUnlinkedTests` 測沒有 core 時的行為。
+
+### 需要 KeepsayKit / core 補的介面（不在 M4a 範圍內修改）
+
+- **設定讀寫走 core config**：`UniffiCore.loadSettings/saveSettings` 目前只存在記憶體。core 的 `transcribe` 用 `config.json` 的 `stt_model`（預設 `whisper-small`），所以 iOS 依記憶體推薦 `whisper-base` 時，下載後 core 仍找 small。需要 FFI 的 config 讀寫（或 `set_stt_model`），預算上限與價目表同理。
+- **模型安裝狀態**：`UniffiCore.models()` 一律回報未安裝。App 目前只記得本次執行下載完成的模型；需要 core 匯出「已安裝且雜湊相符」的查詢。
+- **CI 打包 core**：ios-app.yml 在 bindgen 可用後，建置前先跑 `KEEPSAY_CORE_PLATFORMS="ios ios-sim" apple/scripts/build-core.sh`。
+
 ## Status
 
-Accepted（M4a 進行中；core 連結待 KeepsayKit 與 m1-integration）
+Accepted（M4a 進行中；App 端已改走 KeepsayKit，實際連結 Rust core 待 M2 的 bindgen 與 XCFramework 進 CI）
