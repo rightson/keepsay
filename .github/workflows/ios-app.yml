@@ -77,6 +77,16 @@ jobs:
             echo "::error::audio file API in the iOS app"
             exit 1
           fi
+      - name: Core bridge only through KitCoreService (INV-2)
+        run: |
+          offenders="$(grep -rnE '^\s*(@testable\s+)?import\s+(KeepsayKit|KeepsayCoreBindings|keepsay_coreFFI)\b' \
+               --include='*.swift' apple/KeepsayiOS \
+               | grep -v '^apple/KeepsayiOS/KeepsayiOS/Services/KitCoreService.swift:' || true)"
+          if [ -n "$offenders" ]; then
+            echo "$offenders"
+            echo "::error::KeepsayKit / core bindings imported outside KitCoreService.swift"
+            exit 1
+          fi
       - name: Pasteboard writes only through ClipboardPolicy (T6)
         run: |
           offenders="$(grep -rnE 'UIPasteboard|\.setItems\(|\.string *=|\.strings *=' \

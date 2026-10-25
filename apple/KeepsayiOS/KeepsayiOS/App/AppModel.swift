@@ -13,7 +13,7 @@ import UIKit
 @MainActor
 @Observable
 final class AppModel {
-    static let shared = AppModel(core: UnlinkedCore(), recorder: MemoryRecorder(), store: SettingsStore())
+    static let shared = AppModel(core: KitCoreService.live(), recorder: MemoryRecorder(), store: SettingsStore())
 
     enum OnboardingStep { case key, model, finished }
 
@@ -24,8 +24,17 @@ final class AppModel {
     @ObservationIgnored private var work: Task<Void, Never>?
 
     // State
-    var settings: AppSettings { didSet { store.save(settings) } }
+    var settings: AppSettings {
+        didSet {
+            guard settings != oldValue else { return }
+            store.save(settings)
+            let s = settings
+            Task { await core.apply(s) }
+        }
+    }
     var onboarding: OnboardingStep
+    /// False in development builds without the Rust core (raw only).
+    var coreLinked = false
     var hasKey = false
     var fingerprint: String?
     var budget = BudgetSnapshot.empty
@@ -52,15 +61,25 @@ final class AppModel {
         settings = s
         selectedMode = s.defaultMode
         onboarding = s.onboarded ? .finished : .key
-        refresh()
+        Task {
+            await core.apply(s)
+            await refresh()
+        }
     }
 
-    func refresh() {
-        hasKey = core.hasKey()
-        fingerprint = core.keyFingerprint()
-        budget = core.budgetStatus()
-        installedModels = Set(ModelCatalog.all.map(\.id).filter { core.isModelInstalled($0) })
-        if !hasKey { selectedMode = .raw }
+    /// Re-reads key, budget and model state from the core (off the main
+    /// thread inside the core service).
+    func refresh() async {
+        apply(await core.status())
+    }
+
+    func apply(_ status: CoreStatus) {
+        coreLinked = status.coreLinked
+        hasKey = status.hasKey
+        fingerprint = status.fingerprint
+        budget = status.budget
+        installedModels = status.installedModels
+        if !hasKey || budget.hardLimited { selectedMode = .raw }
     }
 
     /// Modes the home selector allows (FR-1: without a key, raw only).
@@ -77,21 +96,26 @@ final class AppModel {
         do {
             fingerprint = try await core.storeKey(key)
             hasKey = true
-            if selectedMode == .raw { selectedMode = settings.defaultMode }
+            await refresh()
+            if selectedMode == .raw && isModeAvailable(settings.defaultMode) { selectedMode = settings.defaultMode }
             return true
         } catch let e as CoreServiceError {
             keyError = e.message
         } catch {
             keyError = CoreServiceError.keyInvalid.message
         }
-        refresh()
+        await refresh()
         return false
     }
 
-    func deleteKey() {
-        try? core.deleteKey()
-        refresh()
-        showToast("已刪除金鑰，改用原文模式")
+    func deleteKey() async {
+        do {
+            try await core.deleteKey()
+            showToast("已刪除金鑰，改用原文模式")
+        } catch {
+            showToast("無法刪除金鑰，請再試一次")
+        }
+        await refresh()
     }
 
     func skipKey() {
@@ -113,7 +137,11 @@ final class AppModel {
         Task {
             do {
                 try await core.downloadModel(model.id) { [weak self] p in
-                    Task { @MainActor in self?.downloadProgress = min(1, max(0, p)) }
+                    Task { @MainActor in
+                        // Late progress after completion must not resurrect the bar.
+                        guard let self, self.downloadProgress != nil else { return }
+                        self.downloadProgress = min(1, max(0, p))
+                    }
                 }
                 installedModels.insert(model.id)
                 settings.sttModel = model.id
@@ -142,8 +170,10 @@ final class AppModel {
         }
     }
 
+    /// Plans from the last core status (refreshed on foreground, after key
+    /// changes and after each dictation). The core enforces the key and the
+    /// hard limit again on every call, so a stale status cannot bypass them.
     func start(_ action: DictationAction) {
-        refresh()
         let plan = DictationPlan.make(
             action: action, selectedMode: selectedMode, target: settings.targetLanguage,
             hasKey: hasKey, hardLimited: budget.hardLimited)
@@ -170,18 +200,13 @@ final class AppModel {
         level = 0
         guard send(.stop) else { return }
         let rate = recorder.sampleRate
-        let modelID = settings.sttModel
         let glossary = settings.glossary
         work = Task {
-            guard core.isModelInstalled(modelID) else {
-                send(.transcriptionFailed(.modelMissing))
-                return
-            }
             let transcript: String
             do {
-                transcript = try await core.transcribe(pcm: pcm, sampleRate: rate, modelID: modelID, glossary: glossary)
+                transcript = try await core.transcribe(pcm: pcm, sampleRate: rate, glossary: glossary)
             } catch {
-                send(.transcriptionFailed(.transcriptionFailed))
+                send(.transcriptionFailed(DictationFailure.from(error)))
                 return
             }
             guard send(.transcribed(transcript)) else { return }
@@ -219,10 +244,23 @@ final class AppModel {
         phase = next
         if case .done(let out) = next {
             copiedUntil = ClipboardPolicy.copy(out.text)
-            budget = core.budgetStatus()
             UINotificationFeedbackGenerator().notificationOccurred(out.fallback == nil ? .success : .warning)
+            if out.plan.needsAPI {
+                Task {
+                    await refresh()
+                    warnSoftLimitIfNeeded()
+                }
+            }
         }
         return true
+    }
+
+    /// FR-6 / mobile.html "到了提醒一次": one notice per calendar month.
+    func warnSoftLimitIfNeeded(now: Date = Date()) {
+        guard SoftLimitNotice.shouldWarn(budget: budget, lastWarnedMonth: settings.softLimitWarnedMonth, now: now)
+        else { return }
+        settings.softLimitWarnedMonth = SoftLimitNotice.monthKey(now)
+        showToast(SoftLimitNotice.message(budget))
     }
 
     func showToast(_ message: String) {

@@ -16,7 +16,7 @@ struct KeepsayApp: App {
                         if case .recording = model.phase { model.cancel() }
                         if !model.phase.isBusy { model.dismiss() }
                     case .active:
-                        model.refresh()
+                        Task { await model.refresh() }
                     default:
                         break
                     }
