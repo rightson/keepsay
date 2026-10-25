@@ -22,7 +22,7 @@ Voice dictation with local STT and optional Claude polish/translate using the us
 - IMPORTANT: YOU MUST NOT weaken any INV-* in PROPOSAL §3. If a change would weaken one, stop and ask, even when it seems harmless.
 - IMPORTANT: YOU MUST NOT add a dependency, or a feature on an existing one, that is not on the §14 whitelist. Ask first, with your reason and the alternatives. `cargo add` is denied in `.claude/settings.json` on purpose.
 - IMPORTANT: NEVER add a network request. The only egress points are `AnthropicClient` → `https://api.anthropic.com` and `ModelDownloader` → URLs in `models/manifest.json` (§8).
-- NEVER print, log, or assert on a key, transcript, model output, or glossary. That covers tests, error messages, `Debug` impls, and comments. Log lengths and timings only.
+- NEVER print, log, or assert on a key, transcript, model output, or glossary. That covers tests, error messages, `Debug` impls, and comments. Log lengths and timings only. The one exception: a mock-server matcher may compare against the fixed fake test (canary) key to prove where the key is sent, without printing it (docs/changes/0018).
 - NEVER add a function or IPC command that returns the key. Only `vault::fingerprint` (`…a1B2`) may leave the core.
 - NEVER add `tools`, `tool_choice`, or similar fields to `api::types`.
 - NEVER run `cargo vet certify` or `cargo vet trust`, and never add cargo-vet exemptions on your own. Exemptions are added only through a human-approved `docs/changes/` record (see docs/changes/0011). Auditing is a human decision.
@@ -39,7 +39,7 @@ Voice dictation with local STT and optional Claude polish/translate using the us
 
 ## Code style
 
-- Rust 2024 edition. The toolchain is pinned in `rust-toolchain.toml`. `unsafe_code` is denied workspace-wide. The only exception is `core/src/vault/windows.rs` (Win32 Credential Manager FFI, docs/changes/0005), which opts in with `#![allow(unsafe_code)]`; CI fails if `unsafe_code` appears in any other Rust file, manifest, or cargo config. Ask before adding any other exception, for example for SendInput or clipboard FFI in M3.
+- Rust 2024 edition. The toolchain is pinned in `rust-toolchain.toml`. `unsafe_code` is denied workspace-wide. The only exceptions are `core/src/vault/windows.rs` (Win32 Credential Manager FFI, docs/changes/0005) and `windows/src-tauri/src/win32/` (native key dialog, SendInput, clipboard; docs/changes/0018), which opt in with `#![allow(unsafe_code)]`; CI fails if `unsafe_code` appears anywhere else. Every `unsafe` block needs a `// SAFETY:` comment. Ask before adding any other exception.
 - Errors use `CoreError` (thiserror). Variants never carry secret or user content.
 - Secrets are `secrecy::SecretString`. Call `expose_secret()` only at the point of use.
 - Security-relevant tests go in `core/tests/<invariant>.rs`. Unfinished ones are `#[ignore = "M<n>: reason"]`. Never delete them, and never ignore one to get CI green.
