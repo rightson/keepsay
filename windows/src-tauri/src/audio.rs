@@ -4,7 +4,7 @@
 //! device rate; `finish` resamples them to 16 kHz for the STT engine.
 
 use keepsay_core::CoreError;
-use keepsay_core::stt::{SAMPLE_RATE, resample_linear};
+use keepsay_core::stt::resample_linear;
 use zeroize::Zeroize;
 
 /// Longest recording kept. After this the recorder stops appending and the
@@ -53,6 +53,7 @@ pub fn cap_for_rate(rate: u32) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use keepsay_core::stt::SAMPLE_RATE;
 
     #[test]
     fn downmix_averages_channels() {

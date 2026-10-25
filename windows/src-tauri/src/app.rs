@@ -31,8 +31,8 @@ pub const SETTINGS_LABEL: &str = "settings";
 pub const OVERLAY_LABEL: &str = "overlay";
 
 /// Overlay size in logical pixels (Win11 flyout style, docs/mockups).
-const OVERLAY_W: f64 = 340.0;
-const OVERLAY_H: f64 = 60.0;
+const OVERLAY_W: f64 = 460.0;
+const OVERLAY_H: f64 = 72.0;
 
 /// `%LOCALAPPDATA%\keepsay`. Local, not roaming: the glossary and budget
 /// stay on this machine (§10).
@@ -302,9 +302,7 @@ fn to_shortcut(c: &Combo) -> Option<Shortcut> {
 /// already holds fails here; the settings page then asks for another one.
 pub fn register_hotkeys(app: &AppHandle, shared: &Shared) -> HotkeyStatusView {
     let gs = app.global_shortcut();
-    let (p, t) = lock(&shared.config)
-        .hotkeys
-        .resolve(WINDOWS_HOTKEYS);
+    let (p, t) = lock(&shared.config).hotkeys.resolve(WINDOWS_HOTKEYS);
     let (pc, tc) = match parse_pair(&p, &t) {
         Ok(pair) => pair,
         Err(_) => {
@@ -319,7 +317,7 @@ pub fn register_hotkeys(app: &AppHandle, shared: &Shared) -> HotkeyStatusView {
     for old in [h.polish.take(), h.translate.take()].into_iter().flatten() {
         let _ = gs.unregister(old);
     }
-    let try_register =|c: &Combo| -> (Option<Shortcut>, bool) {
+    let try_register = |c: &Combo| -> (Option<Shortcut>, bool) {
         match to_shortcut(c) {
             Some(s) => {
                 let ok = gs.register(s).is_ok();
@@ -367,12 +365,13 @@ pub fn show_settings(app: &AppHandle) {
         let _ = w.set_focus();
         return;
     }
-    let built = WebviewWindowBuilder::new(app, SETTINGS_LABEL, WebviewUrl::App("index.html".into()))
-        .title("keepsay 設定")
-        .inner_size(860.0, 600.0)
-        .min_inner_size(640.0, 480.0)
-        .devtools(cfg!(debug_assertions))
-        .build();
+    let built =
+        WebviewWindowBuilder::new(app, SETTINGS_LABEL, WebviewUrl::App("index.html".into()))
+            .title("keepsay 設定")
+            .inner_size(860.0, 600.0)
+            .min_inner_size(640.0, 480.0)
+            .devtools(cfg!(debug_assertions))
+            .build();
     if built.is_err() {
         tracing::warn!("settings window failed to open");
     }

@@ -32,7 +32,7 @@ input.num { width: 90px; text-align: right; font-variant-numeric: tabular-nums; 
 input.hotkey { width: 170px; text-align: center; cursor: default; }
 input.hotkey.recording { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--field)); }
 .fp { font-family: "Cascadia Mono", Consolas, monospace; font-size: 14px; padding: 3px 8px; background: color-mix(in srgb, var(--text) 6%, transparent); border-radius: 4px; }
-.banner { border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--card)); color: var(--text); border-radius: 6px; padding: 10px 14px; margin: 8px 0 12px; line-height: 1.5; }
+.banner { white-space: pre-line;  border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--card)); color: var(--text); border-radius: 6px; padding: 10px 14px; margin: 8px 0 12px; line-height: 1.5; }
 .msg { font-size: 12px; margin-top: 6px; min-height: 1em; }
 .msg.err { color: var(--bad); }
 .msg.ok { color: var(--muted); }

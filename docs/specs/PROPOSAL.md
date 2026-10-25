@@ -439,6 +439,12 @@ formal：
 - 插入：
   1. 優先用 SendInput 搭配 KEYEVENTF_UNICODE 逐字輸入。
   2. 長文或失敗時用剪貼簿，並附加 ExcludeClipboardContentFromMonitorProcessing、CanIncludeInClipboardHistory=0、CanUploadToCloudClipboard=0 格式，貼上後還原原內容。
+- （v0.4 變更，見 docs/changes/0016-windows-app.md）實作細節：
+  - Win32 FFI（key 對話框、SendInput、剪貼簿）集中在 `windows/src-tauri/src/win32/`，是 `core/src/vault/windows.rs` 之外唯一允許 `unsafe` 的地方（0018）；CI `unsafe-scope` 同步放行這個目錄。
+  - SendInput 以 VK_PACKET 送字，本身繞過 IME；換行送 VK_RETURN。送字前等使用者放開快捷鍵的修飾鍵（最多 1.5 秒）。
+  - 剪貼簿路徑：先備份記憶體型格式（上限 64 MiB，略過 GDI handle 格式），寫入文字與三種排除格式，Ctrl+V 後 400 ms 檢查剪貼簿序號；沒有別人寫入才覆寫我們的文字並還原備份（還原時同樣標記排除格式），有人寫入就不動。
+  - 剪貼簿路徑的 IME 切換（US-M3-09）需要 `Win32_UI_Input_Ime`（`ImmGetDefaultIMEWnd`），不在 0018 批准範圍，暫不實作。
+  - 非機密設定、預算與模型放在 `%LOCALAPPDATA%\keepsay`（不漫遊）。
 - 修正先前的建議：不使用 MSIX AppContainer。理由是 UIPI 會阻擋 SendInput 對其他程式的輸入，而 full-trust 的 MSIX 不會強制執行 capability。所以 Windows 版的網路出口限制由程式碼層的 host 白名單負責。
 
 ---
@@ -619,6 +625,7 @@ Swift：v1 僅使用 Apple 系統框架。
   - 需批准（M3）：在 `windows/` 單一模組放寬 `unsafe_code`；額外 `windows` features（`Win32_UI_WindowsAndMessaging`、`Win32_System_LibraryLoader`，CredUI 另需 `Win32_Graphics_Gdi`、`Win32_System_Com`）不在現有批准範圍，M3 開工時提出。
   - 依據：learn.microsoft.com 的 CredUIPromptForWindowsCredentialsW、CredUnPackAuthenticationBufferW、DialogBoxIndirectParamW、SetWindowDisplayAffinity；windows 0.62.2 原始碼。
   - 待實機（M3）：長 key 貼上、Tauri 父視窗 focus / DPI / Narrator、同權限行程 `WM_GETTEXT` 讀密碼欄、AV 誤報。
+  - 結論（v0.4 變更，見 docs/changes/0016-windows-app.md，已實作、CI 編譯，待實機）：自製對話框，改用 `CreateWindowExW` + 自己的訊息迴圈（`IsDialogMessageW` 提供 Tab / Enter / Esc），不用記憶體內 DLGTEMPLATE，版面較好維護。單一 `ES_PASSWORD` edit（上限 512 字）、`WDA_EXCLUDEFROMCAPTURE`（舊版退回 `WDA_MONITOR`）。按「確定」時以 `GetWindowTextW` 讀進 zeroize 的 UTF-16 緩衝區、就地去掉前後 ASCII 空白、以精確容量轉成 `String` 再交給 `SecretString`（避免重新配置留下副本），隨即覆寫 edit 內容並關閉視窗；之後走 core 的 `vault::store_key`（格式檢查 → 線上驗證 → 存入）。IPC 只回傳 fingerprint。`unsafe` 只在 `windows/src-tauri/src/win32/`（0018）；`windows` features 只用 0018 列出的項目加 `Win32_Foundation`，V5 沒有額外需要。
 - V6：security-framework crate 能否設定 ThisDeviceOnly 和 SecAccessControl。若不行，改由 Swift 端寫入 Keychain，但仍由 Rust 讀取。結論：初步結論如下，仍待實機驗證（v0.4 文件研究）
   - 結論（初步，文件研究，2026-10-24）：可以，由 Rust 寫入（3.7.0 原始碼確認）。用 `set_access_control(SecAccessControl::create_with_protection(Some(AccessibleWhenUnlockedThisDeviceOnly), flags))`，flags 為 0 或 `USER_PRESENCE`；`set_access_synchronized(Some(false))`，get / delete / exists 也帶 `Some(false)`（`None` 是 SynchronizableAny）；不呼叫 `set_access_group`（INV-10）。
   - 禁用 `set_access_control_options`：內部 protection=None，退回 `kSecAttrAccessibleWhenUnlocked`（非 ThisDeviceOnly），違反 INV-1。列入 code review 與 Apple-only 測試。
@@ -723,6 +730,7 @@ Swift：v1 僅使用 Apple 系統框架。
   - [0011](../changes/0011-cargo-vet-imports.md)：匯入六個組織的 cargo-vet 稽核，其餘一次性 exemption；agent 不得自行新增 exemption。
   - [0012](../changes/0012-ring-and-uniffi.md)：rustls 改用 ring、ban aws-lc；加入 uniffi 0.32（MPL-2.0 逐 crate 例外）。
   - [0013](../changes/0013-release-pipeline.md)：tag 觸發的發佈管道、`release` environment 核准、SHA256SUMS 與 build provenance；簽章為佔位（Proposed）。
+  - [0016](../changes/0016-windows-app.md)：M3 Windows Tauri app；V5 結論（自製 `CreateWindowExW` 對話框）、Win32 FFI 集中在 `win32/`、SendInput 與剪貼簿備援、capability 稽核、IPC 回傳型別釘死；cargo-vet exemption 待人工批准（Proposed）。
 - 往後的決策一律寫在 `docs/changes/NNNN-slug.md`，本節只保留摘要與連結。
 
 ---

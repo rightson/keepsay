@@ -224,9 +224,15 @@ mod tests {
         let c = Combo::parse(" shift + alt + z ").unwrap();
         assert_eq!(c.to_string(), "Alt+Shift+Z");
         assert_eq!(Combo::parse("Ctrl+F5").unwrap().to_string(), "Ctrl+F5");
-        assert_eq!(Combo::parse("Alt+Space").unwrap().accelerator(), "alt+Space");
+        assert_eq!(
+            Combo::parse("Alt+Space").unwrap().accelerator(),
+            "alt+Space"
+        );
         assert_eq!(Combo::parse("Alt+Digit3").unwrap().to_string(), "Alt+3");
-        assert_eq!(Combo::parse("Ctrl+Shift+KeyQ").unwrap().to_string(), "Ctrl+Shift+Q");
+        assert_eq!(
+            Combo::parse("Ctrl+Shift+KeyQ").unwrap().to_string(),
+            "Ctrl+Shift+Q"
+        );
     }
 
     #[test]
@@ -234,7 +240,10 @@ mod tests {
         assert_eq!(Combo::parse("Z"), Err(HotkeyError::Syntax));
         assert_eq!(Combo::parse("Shift+Z"), Err(HotkeyError::NeedsAltOrCtrl));
         assert_eq!(Combo::parse("Ctrl+Alt+Z"), Err(HotkeyError::CtrlAlt));
-        assert_eq!(Combo::parse("Ctrl+Alt+Shift+Space"), Err(HotkeyError::CtrlAlt));
+        assert_eq!(
+            Combo::parse("Ctrl+Alt+Shift+Space"),
+            Err(HotkeyError::CtrlAlt)
+        );
         assert_eq!(Combo::parse("Win+H"), Err(HotkeyError::Win));
         assert_eq!(Combo::parse("Alt+Esc"), Err(HotkeyError::Reserved));
         assert_eq!(Combo::parse("Alt+Alt+Z"), Err(HotkeyError::Syntax));

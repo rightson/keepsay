@@ -103,7 +103,7 @@ impl Backend for Win32Backend {
 fn map_err(e: crate::win32::Win32Error) -> InsertError {
     match e {
         crate::win32::Win32Error::NotYetAvailable => InsertError::NotYetAvailable,
-        crate::win32::Win32Error::Failed => InsertError::Failed,
+        crate::win32::Win32Error::Busy | crate::win32::Win32Error::Failed => InsertError::Failed,
     }
 }
 

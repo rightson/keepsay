@@ -95,6 +95,7 @@ async fn enter_key(state: S<'_>) -> Result<KeyView, IpcError> {
         .map_err(|_| IpcError::new("dialog_failed"))?
         .map_err(|e| match e {
             win32::Win32Error::NotYetAvailable => IpcError::new("not_yet_available"),
+            win32::Win32Error::Busy => IpcError::new("busy"),
             win32::Win32Error::Failed => IpcError::new("dialog_failed"),
         })?;
     let Some(key) = key else {
@@ -152,7 +153,10 @@ async fn download_model(state: S<'_>, id: String) -> Result<(), IpcError> {
     let entry = state.manifest.find(&id)?.clone();
     {
         let mut d = lock(&state.downloads);
-        if matches!(d.phase, DownloadPhase::Downloading | DownloadPhase::Verifying) {
+        if matches!(
+            d.phase,
+            DownloadPhase::Downloading | DownloadPhase::Verifying
+        ) {
             return Err(IpcError::new("busy"));
         }
         *d = DownloadView {
@@ -267,7 +271,13 @@ fn overlay_state(state: S<'_>) -> Result<OverlayView, IpcError> {
     let stop_hint = lock(&state.hotkeys)
         .view
         .as_ref()
-        .map(|v| if translate { v.translate.clone() } else { v.polish.clone() })
+        .map(|v| {
+            if translate {
+                v.translate.clone()
+            } else {
+                v.polish.clone()
+            }
+        })
         .unwrap_or_default();
     Ok(OverlayView {
         phase,

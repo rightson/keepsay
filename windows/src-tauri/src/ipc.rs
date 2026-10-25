@@ -296,7 +296,12 @@ mod tests {
         SettingsInput {
             mode: Mode::Formal,
             translate_to: TargetLang::Ja,
-            glossary: vec![" keepsay ".into(), "".into(), "keepsay".into(), "Kevin".into()],
+            glossary: vec![
+                " keepsay ".into(),
+                "".into(),
+                "keepsay".into(),
+                "Kevin".into(),
+            ],
             hotkey_polish: "shift+alt+z".into(),
             hotkey_translate: "Ctrl+Shift+F9".into(),
             stt_model: Some("whisper-small".into()),
@@ -313,7 +318,10 @@ mod tests {
         assert_eq!(cfg.glossary, vec!["keepsay".to_owned(), "Kevin".to_owned()]);
         // Default polish hotkey is stored as "follow the default".
         assert_eq!(cfg.hotkeys.polish, None);
-        assert_eq!(cfg.hotkeys.polish_translate.as_deref(), Some("Ctrl+Shift+F9"));
+        assert_eq!(
+            cfg.hotkeys.polish_translate.as_deref(),
+            Some("Ctrl+Shift+F9")
+        );
         // Fields the WebView cannot edit are kept.
         assert_eq!(cfg.model, base.model);
         assert_eq!(cfg.proxy, base.proxy);

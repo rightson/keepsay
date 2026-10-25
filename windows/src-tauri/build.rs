@@ -11,17 +11,10 @@ fn main() {
     windows_build();
 }
 
-#[cfg(windows)]
 fn windows_build() {
     let attrs = tauri_build::Attributes::new()
         .app_manifest(tauri_build::AppManifest::new().commands(COMMANDS));
     if let Err(e) = tauri_build::try_build(attrs) {
         panic!("tauri-build failed: {e:#}");
     }
-}
-
-#[cfg(not(windows))]
-fn windows_build() {
-    let _ = COMMANDS;
-    panic!("the Windows app must be built on a Windows host");
 }

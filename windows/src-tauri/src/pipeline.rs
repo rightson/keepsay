@@ -41,7 +41,7 @@ impl SttCache {
         }
         #[cfg(not(feature = "whisper"))]
         {
-            let _ = lock(&self.engine);
+            drop(lock(&self.engine));
         }
     }
 }
@@ -70,7 +70,7 @@ fn engine(shared: &Shared) -> Result<Arc<dyn SttEngine + Send + Sync>, &'static 
 
 #[cfg(not(feature = "whisper"))]
 fn engine(shared: &Shared) -> Result<Arc<dyn SttEngine + Send + Sync>, &'static str> {
-    let _ = lock(&shared.stt.engine);
+    drop(lock(&shared.stt.engine));
     Err("stt_unavailable")
 }
 

@@ -289,47 +289,47 @@
 
 **US-M3-01** 身為維護者，我想要完成 V5 spike（CredUIPromptForWindowsCredentialsW 或自製 ES_PASSWORD 對話框），以便 key 永不進 WebView。
 - 驗收：① §15 V5 回填 ② 列出所需 `windows` crate features（最小化）
-- 狀態：⬜ ｜ 相依：D-2
+- 狀態：🚧 ｜ 相依：D-2 ｜ ① ② 完成（自製 `CreateWindowExW` 對話框，features 見 [0016](../changes/0016-windows-app.md)）；待實機驗證 DPI、Narrator、截圖排除
 
 **US-M3-02** 身為安全稽核者，我想要 Tauri 2 骨架只開必要 capability、CSP `default-src 'self'; connect-src ipc: http://ipc.localhost`、release 關 devtools、不載入遠端 URL，以便 WebView 無法自行連網（§7.3）。
 - 驗收：① 無 shell / fs / http / updater plugin（`cargo deny` 已禁）② capability 稽核表寫入 docs/changes
-- 狀態：⬜ ｜ 相依：US-M1-22
+- 狀態：✅ ｜ 相依：US-M1-22 ｜ ① ② 完成，稽核表在 [0016](../changes/0016-windows-app.md) 第 2 節，`windows/src-tauri/tests/ipc_surface.rs` 自動檢查；cargo-vet exemption 待人工批准
 
 **US-M3-03** 身為使用者，我想要在原生 Win32 對話框輸入 key 並看到末四碼，以便 key 不經 JavaScript（FR-1、INV-2）。
 - 驗收：① 對話框由 Rust 開啟，直接呼叫 core ② 對應 `desktop.html` 的 w32 對話框
-- 狀態：⬜ ｜ 相依：US-M3-01、US-M1-06
+- 狀態：🚧 ｜ 相依：US-M3-01、US-M1-06 ｜ 已實作（`win32/dialog.rs` → `vault::store_key`，IPC 只回 fingerprint），CI 編譯；待實機
 
 **US-M3-04** 身為使用者，我想要 RegisterHotKey 註冊的預設快捷鍵（0004：Alt+Shift+Z / Alt+Shift+X，MOD_NOREPEAT），以便不需鍵盤 hook 就能觸發（FR-2、V8 選項 (c)）。
 - 驗收：① 透過 tauri-plugin-global-shortcut，不使用 WH_KEYBOARD_LL 或 Raw Input ② 註冊失敗時提示改鍵 ③ AltGr 配置手動驗證不被攔截
-- 狀態：⬜ ｜ 相依：D-1
+- 狀態：🚧 ｜ 相依：D-1 ｜ ① ② 已實作（設定頁橫幅提示改鍵）；③ 待實機
 
 **US-M3-05** 身為使用者，我想要 cpal 錄音只存在記憶體，以便音訊不落地（INV-5）。
 - 驗收：① 16 kHz mono f32 ② 不寫暫存檔
-- 狀態：⬜ ｜ 相依：US-M3-02
+- 狀態：🚧 ｜ 相依：US-M3-02 ｜ 已實作（cpal → 記憶體 → `resample_linear`），待實機
 
 **US-M3-06** 身為使用者，我想要在 Windows 下載或匯入模型並辨識，以便離線使用（FR-3、INV-7）。
 - 驗收：① 呼叫 core 的 download / transcribe ② 進度顯示在設定頁
-- 狀態：⬜ ｜ 相依：US-M1-19、US-M3-02
+- 狀態：🚧 ｜ 相依：US-M1-19、US-M3-02 ｜ 下載、SHA-256 驗證、手動放檔後驗證、進度顯示已實作；待實機
 
 **US-M3-07** 身為使用者，我想要結果以 SendInput + KEYEVENTF_UNICODE 逐字插入，以便不經剪貼簿（FR-5）。
 - 驗收：① 不使用 MSIX AppContainer（§7.3）② 長文切換到 M3-08
-- 狀態：⬜ ｜ 相依：D-2
+- 狀態：🚧 ｜ 相依：D-2 ｜ 已實作（`win32/input.rs`，0018 批准），待實機
 
 **US-M3-08** 身為使用者，我想要剪貼簿備援帶 ExcludeClipboardContentFromMonitorProcessing、CanIncludeInClipboardHistory=0、CanUploadToCloudClipboard=0 並還原原內容，以便不進剪貼簿歷史與雲端（T6）。
 - 驗收：① 三種格式皆設定 ② 還原原內容
-- 狀態：⬜ ｜ 相依：US-M3-07
+- 狀態：🚧 ｜ 相依：US-M3-07 ｜ ① ② 已實作（`win32/clipboard.rs`），待實機確認 Win+V 歷史
 
 **US-M3-09** 身為使用注音 / 新注音的使用者，我想要貼上前把 IME 切到英數模式、完成後還原，以便 Ctrl+V 正常（競品經驗）。
 - 驗收：① 只在剪貼簿路徑啟用 ② 還原原 IME 狀態
-- 狀態：⬜ ｜ 相依：US-M3-08
+- 狀態：⬜ 🧑 ｜ 相依：US-M3-08 ｜ 需要 `Win32_UI_Input_Ime`（不在 0018 批准範圍）；SendInput 路徑本身繞過 IME，見 [0016](../changes/0016-windows-app.md) 第 6 節
 
 **US-M3-10** 身為使用者，我想要 tray、錄音 overlay、設定頁（模式、目標語言、詞彙表、預算、快捷鍵），以便完成 M2 同等功能（FR-4、FR-6、FR-7、FR-8）。
 - 驗收：① 對應 `desktop.html` Windows 畫面 ② fallback 提示同 M2-13
-- 狀態：⬜ ｜ 相依：US-M3-02
+- 狀態：🚧 ｜ 相依：US-M3-02 ｜ tray、浮條、設定頁（一般、金鑰、詞彙表、預算、模型、隱私）已實作；待實機。未做：push-to-talk、登入時啟動
 
 **US-M3-11** 身為安全稽核者，我想要自動檢查所有 IPC command 的回傳型別，以便沒有任何 command 回傳 key（INV-2）。
 - 驗收：① 測試列舉 command 並比對允許清單 ② 新增 command 時測試會失敗直到更新清單
-- 狀態：⬜ ｜ 相依：US-M3-02
+- 狀態：✅ ｜ 相依：US-M3-02 ｜ `windows/src-tauri/tests/ipc_surface.rs`（每個 OS 都跑）
 
 **US-M3-12** 身為維護者，我想要跑完 §11 Windows 手動清單（含 AltGr 配置、Office、終端機、斷網），以便達成 M3 DoD。
 - 驗收：① 結果記錄於 docs/changes

@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{FromSample, Sample, SampleFormat, SizedSample, StreamConfig};
+use cpal::{FromSample, SampleFormat, SizedSample, StreamConfig};
 use zeroize::Zeroize;
 
 use crate::audio;

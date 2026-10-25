@@ -31,7 +31,8 @@ jobs:
       - run: cargo fmt --all --check
 
   unsafe-scope:
-    # docs/changes/0005: `unsafe` is allowed only in core/src/vault/windows.rs.
+    # docs/changes/0005, 0018: `unsafe` is allowed only in
+    # core/src/vault/windows.rs and windows/src-tauri/src/win32/ (Win32 FFI).
     # The workspace lint is "deny"; any other mention of `unsafe_code` in Rust
     # sources, Cargo manifests or cargo config could relax it, so it fails here.
     runs-on: ubuntu-latest
@@ -41,18 +42,21 @@ jobs:
           persist-credentials: false
       - name: Workspace lint is still deny
         run: grep -qx 'unsafe_code = "deny"' Cargo.toml
-      - name: No unsafe_code override outside core/src/vault/windows.rs
+      - name: No unsafe_code override outside the two allowed places
         run: |
           offenders="$(git ls-files -z -- '*.rs' '*Cargo.toml' '.cargo/*' \
             | xargs -0 grep -l 'unsafe_code' -- \
-            | grep -vx -e 'Cargo.toml' -e 'core/src/vault/windows.rs' || true)"
+            | grep -vx -e 'Cargo.toml' -e 'core/src/vault/windows.rs' \
+            | grep -v '^windows/src-tauri/src/win32/[^/]*\.rs$' || true)"
           if [ -n "$offenders" ]; then
-            echo "::error::unsafe_code mentioned outside core/src/vault/windows.rs:"
+            echo "::error::unsafe_code mentioned outside core/src/vault/windows.rs and windows/src-tauri/src/win32/:"
             echo "$offenders"
             exit 1
           fi
-      - name: windows.rs opts in exactly once
-        run: test "$(grep -c 'allow(unsafe_code)' core/src/vault/windows.rs)" -eq 1
+      - name: windows.rs and win32/mod.rs opt in exactly once
+        run: |
+          test "$(grep -c 'allow(unsafe_code)' core/src/vault/windows.rs)" -eq 1
+          test "$(grep -c '^#!\[allow(unsafe_code)\]' windows/src-tauri/src/win32/mod.rs)" -eq 1
 
   clippy:
     runs-on: ubuntu-latest

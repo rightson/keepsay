@@ -1,0 +1,22 @@
+/* Recording overlay (docs/mockups/desktop.html, Win11 flyout). */
+html, body.overlay { background: transparent; height: 100%; overflow: hidden; }
+body.overlay { display: flex; align-items: center; justify-content: center; user-select: none; cursor: default; }
+.hud {
+  display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 18px;
+  border-radius: 8px; background: var(--menu); color: var(--text); border: 1px solid var(--line);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .18); font-size: 14px; white-space: nowrap;
+}
+.hud[hidden] { display: none; }
+.hud > [hidden] { display: none !important; }
+.recdot { width: 10px; height: 10px; border-radius: 5px; background: var(--bad); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.bars { display: flex; gap: 3px; align-items: center; height: 22px; }
+.bars i { width: 3px; height: 6px; border-radius: 2px; background: var(--accent); transition: height .09s; }
+.t { font-variant-numeric: tabular-nums; opacity: .75; }
+.t.cap { color: var(--warn); opacity: 1; }
+.k { font-size: 12px; opacity: .6; padding-left: 12px; border-left: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); animation: rot .8s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
+.okc { width: 18px; height: 18px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.okc.warn { background: var(--warn); }
+@media (prefers-reduced-motion: reduce) { .recdot, .spin { animation: none; } }

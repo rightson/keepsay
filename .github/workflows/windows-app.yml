@@ -1,0 +1,75 @@
+name: Windows app
+
+# M3 (docs/changes/0016): the Tauri 2 tray app under windows/ is Windows
+# only, so it is compiled, linted and tested here on a Windows runner; on
+# Linux CI it builds as a stub. Produces an unsigned keepsay.exe artifact
+# (Authenticode signing waits for PROPOSAL §16-2).
+# PROPOSAL §9: read-only token, no secrets, actions pinned to commit SHAs.
+
+on:
+  pull_request:
+    paths:
+      - "windows/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/windows-app.yml"
+  push:
+    branches: [main]
+    paths:
+      - "windows/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/windows-app.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-app-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint-test:
+    # Without whisper (no cmake / libclang): clippy and tests of the app,
+    # including the Win32 FFI in src/win32/ and the IPC surface test.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - run: cargo clippy -p keepsay-windows --all-targets --no-default-features --locked -- -D warnings
+      - run: cargo test -p keepsay-windows --no-default-features --locked
+
+  build:
+    # Release build with local STT (whisper.cpp). Unsigned.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - name: Release graph has no test-endpoint / test-support
+        shell: bash
+        run: |
+          tree="$(cargo tree -p keepsay-windows --locked -e normal,build,features -i keepsay-core)"
+          for f in test-endpoint test-support; do
+            if grep -q "feature \"$f\"" <<<"$tree"; then
+              echo "::error::$f is enabled in the app's dependency graph"
+              exit 1
+            fi
+          done
+      - run: cargo build -p keepsay-windows --release --locked
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keepsay-windows-x86_64-unsigned
+          path: target/release/keepsay.exe
+          if-no-files-found: error
+          retention-days: 14
