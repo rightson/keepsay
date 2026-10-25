@@ -22,6 +22,8 @@ struct AppSettings: Codable, Equatable {
     /// USD per million tokens. UI labels these "請核對官方定價".
     var inputPricePerMTok: Double = 0.10
     var outputPricePerMTok: Double = 0.50
+    /// "YYYY-MM" of the last soft-limit notice ("到了提醒一次").
+    var softLimitWarnedMonth: String?
 }
 
 extension AppSettings: CustomStringConvertible, CustomDebugStringConvertible {

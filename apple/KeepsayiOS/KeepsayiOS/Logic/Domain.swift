@@ -136,3 +136,24 @@ struct BudgetSnapshot: Equatable, Sendable {
         return min(1, max(0, estimatedUSD / cap))
     }
 }
+
+/// FR-6 soft limit: warn once per calendar month (local time), and not when
+/// the hard limit already switched dictation to raw (that has its own
+/// banner).
+enum SoftLimitNotice {
+    static func monthKey(_ date: Date, calendar: Calendar = .current) -> String {
+        let c = calendar.dateComponents([.year, .month], from: date)
+        return String(format: "%04d-%02d", c.year ?? 0, c.month ?? 0)
+    }
+
+    static func shouldWarn(
+        budget: BudgetSnapshot, lastWarnedMonth: String?, now: Date, calendar: Calendar = .current
+    ) -> Bool {
+        budget.softLimited && !budget.hardLimited && lastWarnedMonth != monthKey(now, calendar: calendar)
+    }
+
+    static func message(_ budget: BudgetSnapshot) -> String {
+        let cap = budget.softLimitUSD.map { String(format: "US$%.2f", $0) } ?? ""
+        return "本月用量已達軟上限 \(cap)"
+    }
+}

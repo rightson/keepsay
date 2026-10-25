@@ -29,7 +29,7 @@
                             api.anthropic.com ◀────┘   （唯一帶 key 的出口）
                             模型下載來源 ◀──────────── ModelDownloader（無 key）
 
-- B1：UI ↔ core。key 只能單向流入 core（store_key），不得流出（INV-2）。
+- B1：UI ↔ core。key 只能單向流入 core（store_key），不得流出（INV-2）。（v0.4 變更，見 docs/changes/0019-swift-bindings.md）FFI 另有 `get_settings` / `save_settings` / `list_models`，只碰非機密設定（不含 proxy）與模型清單；匯出清單與 `Settings` 欄位由 `core/tests/ffi_surface.rs` 釘住，產生的 Swift 公開函式由 CI `core-linked` job 比對。
 - B2：core ↔ 網路。key 只能出現在 AnthropicClient 送往 BASE_URL 的請求中（INV-3）。
 - B3：core ↔ 模型（LLM）。模型的輸出只是資料，它無法觸發任何動作（INV-4），並且要先經過守門（§6.6）才會插入。
 - B4：repo ↔ 使用者手上的 binary。只有 CI 的產出可信（INV-8）。

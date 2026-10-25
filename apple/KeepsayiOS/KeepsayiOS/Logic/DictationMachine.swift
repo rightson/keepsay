@@ -80,6 +80,17 @@ enum DictationFailure: Equatable, Sendable {
     case nothingHeard
     case transcriptionFailed
     case modelMissing
+    /// Development build without the Rust core: no STT.
+    case coreUnavailable
+
+    /// Maps a core service error to a content-free failure.
+    static func from(_ error: Error) -> DictationFailure {
+        switch error as? CoreServiceError {
+        case .modelMissing: return .modelMissing
+        case .coreUnavailable: return .coreUnavailable
+        default: return .transcriptionFailed
+        }
+    }
 
     var message: String {
         switch self {
@@ -88,6 +99,7 @@ enum DictationFailure: Equatable, Sendable {
         case .nothingHeard: return "沒有聽到內容。"
         case .transcriptionFailed: return "轉寫失敗，請再試一次。"
         case .modelMissing: return "尚未下載語音模型。請到設定下載。"
+        case .coreUnavailable: return "此開發版未連結 keepsay-core，無法轉寫。"
         }
     }
 }
