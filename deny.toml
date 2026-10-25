@@ -8,7 +8,15 @@ all-features = true
 version = 2
 yanked = "deny"
 unmaintained = "all"
-ignore = []
+ignore = [
+    # basic-toml is unmaintained (no vulnerability). It is reached only via
+    # uniffi's `cli` feature (uniffi_bindgen -> askama's `config` feature),
+    # i.e. only by the keepsay-uniffi-bindgen build tool, which never ships;
+    # keepsay-core does not enable `cli` (docs/changes/0018 D-12, 0019).
+    # No maintained release of askama/uniffi avoids it. Remove when uniffi
+    # moves off it.
+    { id = "RUSTSEC-2026-0374", reason = "build-tool-only unmaintained dep, see docs/changes/0019" },
+]
 
 [licenses]
 version = 2
@@ -71,6 +79,16 @@ allow = ["MPL-2.0"]
 
 [[licenses.exceptions]]
 crate = "uniffi_pipeline"
+allow = ["MPL-2.0"]
+
+# The Swift binding generator behind uniffi's `cli` feature, used only by the
+# keepsay-uniffi-bindgen build tool (docs/changes/0018 D-12, 0019).
+[[licenses.exceptions]]
+crate = "uniffi_bindgen"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "uniffi_udl"
 allow = ["MPL-2.0"]
 
 [licenses.private]

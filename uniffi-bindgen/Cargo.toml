@@ -1,0 +1,25 @@
+[package]
+name = "keepsay-uniffi-bindgen"
+description = "Build tool: generates the Swift bindings of keepsay-core (apple/scripts/build-core.sh). Never shipped."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+# docs/changes/0018 (D-12) and 0019: the only crate that enables uniffi's
+# `cli` feature (clap, uniffi_bindgen, askama, ...). keepsay-core never does.
+# App and release libraries are built with `-p keepsay-core` so cargo's
+# feature unification cannot pull `cli` into them.
+[[bin]]
+name = "uniffi-bindgen-swift"
+path = "src/main.rs"
+
+[dependencies]
+# Same version as keepsay-core's uniffi: the generated bindings must match
+# the scaffolding's metadata and checksums.
+uniffi = { version = "=0.32.2", default-features = false, features = ["cli"] }
+
+[lints]
+workspace = true

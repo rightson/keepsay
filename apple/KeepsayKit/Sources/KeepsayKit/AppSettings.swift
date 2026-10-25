@@ -40,6 +40,43 @@ public struct KeyCombo: Equatable, Codable, Sendable {
     public static let fallbackTranslate = KeyCombo(keyCode: kVKSpace, carbonModifiers: optionKey | shiftKey)
 }
 
+extension KeyCombo {
+    private static let modifierNames: [(UInt32, String)] = [
+        (controlKey, "Control"), (optionKey, "Option"), (shiftKey, "Shift"), (cmdKey, "Cmd"),
+    ]
+
+    /// The string stored in core's `config.json` `hotkeys` (docs/changes/0019),
+    /// e.g. "Option+Shift+Space" or "Control+Option+VK6". Same style as
+    /// core's `MACOS_FALLBACK_HOTKEYS`.
+    public var configString: String {
+        var parts = Self.modifierNames.filter { carbonModifiers & $0.0 != 0 }.map(\.1)
+        parts.append(keyCode == Self.kVKSpace ? "Space" : "VK\(keyCode)")
+        return parts.joined(separator: "+")
+    }
+
+    /// Parses `configString`; `nil` for anything else (the caller then uses
+    /// the default combination).
+    public init?(configString: String) {
+        let parts = configString.split(separator: "+").map(String.init)
+        guard let key = parts.last, parts.count >= 2 else { return nil }
+        var mods: UInt32 = 0
+        for name in parts.dropLast() {
+            guard let m = Self.modifierNames.first(where: { $0.1 == name }) else { return nil }
+            guard mods & m.0 == 0 else { return nil }
+            mods |= m.0
+        }
+        let code: UInt32
+        if key == "Space" {
+            code = Self.kVKSpace
+        } else if key.hasPrefix("VK"), let n = UInt32(key.dropFirst(2)), n < 128 {
+            code = n
+        } else {
+            return nil
+        }
+        self.init(keyCode: code, carbonModifiers: mods)
+    }
+}
+
 public struct AppSettings: Equatable, Codable, Sendable, CustomStringConvertible, CustomDebugStringConvertible {
     public var mode: DictationMode
     public var translateTo: TranslationTarget
