@@ -12,6 +12,14 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var model = model
         Form {
+            if !model.coreLinked {
+                Section {
+                    Label("此開發版未連結 keepsay-core：只能用原文模式，無法儲存金鑰、下載模型或轉寫。",
+                          systemImage: "wrench.and.screwdriver")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Section {
                 HStack {
                     Text("Claude 金鑰")
@@ -99,7 +107,7 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showKeySheet) { ReplaceKeySheet() }
         .confirmationDialog("刪除金鑰？", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("刪除", role: .destructive) { model.deleteKey() }
+            Button("刪除", role: .destructive) { Task { await model.deleteKey() } }
         } message: {
             Text("刪除後只能用原文模式。Console 上的金鑰仍有效，要停用請到 Console 撤銷。")
         }

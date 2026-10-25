@@ -34,9 +34,9 @@ use zeroize::Zeroize;
 use crate::CoreError;
 use crate::api::AnthropicClient;
 use crate::budget::{Budget, BudgetStatus, YearMonth};
-use crate::config::Config;
+use crate::config::{BudgetLimits, Config, Hotkeys, PriceTable};
 use crate::downloader::{Manifest, ModelDownloader};
-use crate::polish::{FallbackReason, PolishOptions, PolishResult};
+use crate::polish::{FallbackReason, Mode, PolishOptions, PolishResult, TargetLang};
 #[cfg(feature = "whisper")]
 use crate::stt::SttOptions;
 use crate::vault::{self, Fingerprint, KeyVault};
@@ -54,6 +54,92 @@ uniffi::custom_type!(Fingerprint, String, {
 #[uniffi::export(foreign)]
 pub trait DownloadProgress: Send + Sync {
     fn on_progress(&self, received: u64, total: u64);
+}
+
+/// The user-editable part of `config.json` (PROPOSAL §10, FR-4/6/7/8),
+/// read and written through [`get_settings`] / [`save_settings`] so the apps
+/// never write a settings file of their own. `model` (allowlisted) and
+/// `proxy` are not exposed and are kept as they are on save. The glossary
+/// is private: `Debug` prints its length only (§6.9).
+#[derive(Clone, PartialEq, uniffi::Record)]
+pub struct Settings {
+    pub mode: Mode,
+    pub translate_to: TargetLang,
+    /// Manifest id of the STT model.
+    pub stt_model: Option<String>,
+    pub glossary: Vec<String>,
+    pub input_usd_per_mtok: f64,
+    pub output_usd_per_mtok: f64,
+    pub soft_limit_usd: Option<f64>,
+    pub hard_limit_usd: Option<f64>,
+    /// Platform-specific hotkey strings; `None` = platform default (FR-2).
+    pub hotkey_polish: Option<String>,
+    pub hotkey_polish_translate: Option<String>,
+}
+
+impl std::fmt::Debug for Settings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Settings")
+            .field("mode", &self.mode)
+            .field("translate_to", &self.translate_to)
+            .field("stt_model", &self.stt_model)
+            .field("glossary_len", &self.glossary.len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl From<&Config> for Settings {
+    fn from(c: &Config) -> Self {
+        Self {
+            mode: c.mode,
+            translate_to: c.translate_to,
+            stt_model: c.stt_model.clone(),
+            glossary: c.glossary.clone(),
+            input_usd_per_mtok: c.prices.input_usd_per_mtok,
+            output_usd_per_mtok: c.prices.output_usd_per_mtok,
+            soft_limit_usd: c.budget.soft_usd,
+            hard_limit_usd: c.budget.hard_usd,
+            hotkey_polish: c.hotkeys.polish.clone(),
+            hotkey_polish_translate: c.hotkeys.polish_translate.clone(),
+        }
+    }
+}
+
+impl Settings {
+    /// `base` with these settings applied; `model`, `proxy` and the schema
+    /// version come from `base`.
+    fn apply_to(self, base: Config) -> Config {
+        Config {
+            mode: self.mode,
+            translate_to: self.translate_to,
+            stt_model: self.stt_model,
+            glossary: self.glossary,
+            prices: PriceTable {
+                input_usd_per_mtok: self.input_usd_per_mtok,
+                output_usd_per_mtok: self.output_usd_per_mtok,
+            },
+            budget: BudgetLimits {
+                soft_usd: self.soft_limit_usd,
+                hard_usd: self.hard_limit_usd,
+            },
+            hotkeys: Hotkeys {
+                polish: self.hotkey_polish,
+                polish_translate: self.hotkey_polish_translate,
+            },
+            ..base
+        }
+    }
+}
+
+/// One `models/manifest.json` entry and whether its file is present in
+/// `models/`. `installed` only checks that the file exists; the SHA-256 is
+/// verified when the model is loaded (INV-7).
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct ModelStatus {
+    pub id: String,
+    pub name: String,
+    pub size: u64,
+    pub installed: bool,
 }
 
 struct Core {
@@ -358,6 +444,44 @@ pub fn import_model(id: String, path: String) -> Result<(), CoreError> {
     let manifest = Manifest::bundled()?;
     let entry = manifest.find(&id)?;
     crate::downloader::import(entry, Path::new(&path), &core.models_dir()).map(|_| ())
+}
+
+/// The user-editable settings from `config.json` (defaults when the file
+/// does not exist yet).
+#[uniffi::export]
+pub fn get_settings() -> Result<Settings, CoreError> {
+    Ok(Settings::from(&core()?.config()?))
+}
+
+/// Validate and write `settings` into `config.json` (temp file + rename).
+/// An unreadable or newer-schema file is refused with `Config` and left
+/// untouched (§10: a downgrade never destroys newer settings).
+#[uniffi::export]
+pub fn save_settings(settings: Settings) -> Result<(), CoreError> {
+    let core = core()?;
+    let config = settings.apply_to(core.config()?);
+    std::fs::create_dir_all(&core.data_dir)?;
+    config.save(&core.data_dir.join("config.json"))?;
+    tracing::info!("ffi: settings saved");
+    Ok(())
+}
+
+/// The bundled manifest's models and whether each is present in `models/`.
+#[uniffi::export]
+pub fn list_models() -> Result<Vec<ModelStatus>, CoreError> {
+    let core = core()?;
+    let manifest = Manifest::bundled()?;
+    let dir = core.models_dir();
+    Ok(manifest
+        .models
+        .iter()
+        .map(|e| ModelStatus {
+            id: e.id.clone(),
+            name: e.name.clone(),
+            size: e.size,
+            installed: crate::downloader::model_path(e, &dir).is_file(),
+        })
+        .collect())
 }
 
 // ------------------------------------------------------- test support

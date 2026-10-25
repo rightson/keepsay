@@ -2,7 +2,8 @@ name: iOS app
 
 # M4a (docs/changes/0017-ios-app.md). Builds apple/KeepsayiOS for the iOS
 # Simulator, runs its XCTest bundle on a simulator, and uploads the simulator
-# .app as a workflow artifact. No signing, no secrets: this workflow runs on
+# .app as a workflow artifact: once without the Rust core (build-test) and
+# once linked against keepsay-core (build-test-core). No signing, no secrets: this workflow runs on
 # pull requests. TestFlight upload is a disabled placeholder until PROPOSAL
 # §16 item 1 (Apple Developer Program, App Store Connect API key) is done.
 #
@@ -15,6 +16,10 @@ on:
       - "apple/**"
       - "core/**"
       - "models/**"
+      - "uniffi-bindgen/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
       - ".github/workflows/ios-app.yml"
   push:
     branches: [main]
@@ -22,6 +27,10 @@ on:
       - "apple/**"
       - "core/**"
       - "models/**"
+      - "uniffi-bindgen/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
       - ".github/workflows/ios-app.yml"
   workflow_dispatch:
 
@@ -75,6 +84,16 @@ jobs:
         run: |
           if grep -rnE 'AVAudioFile|AVAudioRecorder|AVAssetWriter' --include='*.swift' apple/KeepsayiOS; then
             echo "::error::audio file API in the iOS app"
+            exit 1
+          fi
+      - name: Core bridge only through KitCoreService (INV-2)
+        run: |
+          offenders="$(grep -rnE '^\s*(@testable\s+)?import\s+(KeepsayKit|KeepsayCoreBindings|keepsay_coreFFI)\b' \
+               --include='*.swift' apple/KeepsayiOS \
+               | grep -v '^apple/KeepsayiOS/KeepsayiOS/Services/KitCoreService.swift:' || true)"
+          if [ -n "$offenders" ]; then
+            echo "$offenders"
+            echo "::error::KeepsayKit / core bindings imported outside KitCoreService.swift"
             exit 1
           fi
       - name: Pasteboard writes only through ClipboardPolicy (T6)
@@ -177,6 +196,98 @@ jobs:
           path: |
             build/*.log
             build/KeepsayiOSTests.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build-test-core:
+    # Same app, linked against the real keepsay-core: build-core.sh makes
+    # KeepsayCoreFFI.xcframework (iOS device + simulator) and the UniFFI
+    # bindings, KeepsayKit picks them up, CoreBridge returns UniffiCore.
+    # KEEPSAY_EXPECT_CORE turns the live-core test from "skip" into "must".
+    runs-on: macos-15
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - name: keepsay-core XCFramework + Swift bindings (iOS, iOS Simulator)
+        run: apple/scripts/build-core.sh
+        env:
+          KEEPSAY_CORE_PLATFORMS: "ios-sim ios"
+
+      - name: Pick an iPhone simulator
+        id: sim
+        run: |
+          udid="$(xcrun simctl list devices available -j \
+            | jq -r '[.devices | to_entries[] | select(.key | test("iOS")) | .value[]
+                      | select(.name | test("^iPhone"))] | last | .udid // empty')"
+          [ -n "$udid" ] || { echo "::error::no available iPhone simulator"; exit 1; }
+          echo "udid=$udid" >>"$GITHUB_OUTPUT"
+
+      - name: Test on the simulator (core linked)
+        run: |
+          mkdir -p build
+          set +e
+          TEST_RUNNER_KEEPSAY_EXPECT_CORE=1 xcodebuild test \
+            -project "$PROJECT" -scheme "$SCHEME" -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath build/DerivedData \
+            -resultBundlePath build/KeepsayiOSTests-core.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            >build/xcodebuild-test-core.log 2>&1
+          status=$?
+          set -e
+          grep -E '(error|warning):|Test Case .*(passed|failed|skipped)|Executed|\*\* ' build/xcodebuild-test-core.log || true
+          if [ "$status" -ne 0 ]; then tail -n 80 build/xcodebuild-test-core.log; fi
+          exit "$status"
+
+      - name: Build Release for simulator and device (core linked)
+        run: |
+          mkdir -p build
+          for dest in 'generic/platform=iOS Simulator' 'generic/platform=iOS'; do
+            set +e
+            xcodebuild build \
+              -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
+              -destination "$dest" -derivedDataPath build/DerivedData \
+              CODE_SIGNING_ALLOWED=NO \
+              >build/xcodebuild-release-core.log 2>&1
+            status=$?
+            set -e
+            grep -E '(error|warning):|\*\* ' build/xcodebuild-release-core.log || true
+            if [ "$status" -ne 0 ]; then tail -n 80 build/xcodebuild-release-core.log; exit "$status"; fi
+          done
+          for app in build/DerivedData/Build/Products/Release-iphonesimulator/KeepsayiOS.app \
+                     build/DerivedData/Build/Products/Release-iphoneos/KeepsayiOS.app; do
+            nm "$app/KeepsayiOS" 2>/dev/null | grep -q 'uniffi_keepsay_core_fn_func_store_key' \
+              || { echo "::error::$app does not link keepsay-core"; exit 1; }
+            # INV-2: the linked core exports no key getter.
+            if nm "$app/KeepsayiOS" 2>/dev/null | grep -E 'uniffi_keepsay_core_fn_func_(get|load|read|export)_key'; then
+              echo "::error::key getter in the linked core"; exit 1
+            fi
+            if /usr/libexec/PlistBuddy -c 'Print' "$app/Info.plist" | grep -qi 'keychain'; then
+              echo "::error::unexpected keychain entry in Info.plist"; exit 1
+            fi
+          done
+          ditto -c -k --keepParent build/DerivedData/Build/Products/Release-iphonesimulator/KeepsayiOS.app \
+            build/KeepsayiOS-simulator-core.zip
+
+      - name: Upload simulator app (core linked)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: KeepsayiOS-simulator-core
+          path: build/KeepsayiOS-simulator-core.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: KeepsayiOS-core-logs
+          path: |
+            build/*.log
+            build/KeepsayiOSTests-core.xcresult
           if-no-files-found: ignore
           retention-days: 7
 

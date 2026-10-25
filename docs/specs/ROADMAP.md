@@ -229,11 +229,11 @@
 
 **US-M2-04** 身為貢獻者，我想要 Xcode 專案與 KeepsayKit 透過 UniFFI 連結 core，以便 macOS 與 iOS 共用同一份 Swift 綁定。
 - 驗收：① §5.2 的 apple/ 結構 ② 無第三方 Swift 套件（§9）③ bundle id `dev.rightson.keepsay.*`
-- 狀態：🚧 ｜ 相依：US-M1-22 ｜ SwiftPM + build-core.sh XCFramework 完成（[0015](../changes/0015-macos-app.md)）；待 FFI 匯出後接上 `UniffiCore`
+- 狀態：✅ ｜ 相依：US-M1-22 ｜ SwiftPM（[0015](../changes/0015-macos-app.md)）；`keepsay-uniffi-bindgen` 產生 binding、`build-core.sh` 打包 XCFramework，`UniffiCore` 接上產生的 binding；CI `core-linked` 跑 `UniffiCoreTests`（真的呼叫 FFI）、iOS 建置與連結 core 的 App（[0019](../changes/0019-swift-bindings.md)）
 
 **US-M2-05** 身為使用者，我想要在 SecureField 輸入 key、看到末四碼、可更換與刪除，並看到 §12 的安全引導，以便安心設定 key（FR-1）。
 - 驗收：① 送出後立即 `store_key` 並清空欄位（INV-2）② 沒有顯示或複製 key 的功能 ③ onboarding 顯示 §12 四步驟
-- 狀態：🚧 ｜ 相依：US-M2-04、US-M1-01 ｜ UI 完成，待 FFI
+- 狀態：🚧 ｜ 相依：US-M2-04、US-M1-01 ｜ UI 與 FFI 接上；CI 只能測到格式檢查（ad-hoc 簽章寫不進 DP keychain，`VaultNotEntitled`），清空欄位無自動測試；需 §16-1 簽章後實機
 
 **US-M2-06** 身為使用者，我想要用 fn+Z / fn+Shift+Z 開始與結束錄音，以便單手觸發潤飾或翻譯（FR-2）。
 - 驗收：① active tap 隔離在單一檔案，回呼只讀 Z keycode 與 fn / Shift 旗標、不保存任何按鍵（T7）② 有自動檢查限制該檔案的事件處理範圍（THREAT_MODEL T7 待補）③ toggle 語意與 Esc 取消
@@ -249,7 +249,7 @@
 
 **US-M2-09** 身為使用者，我想要在 App 內下載或手動匯入模型並看到進度，以便離線辨識（FR-3、INV-7）。
 - 驗收：① 只呼叫 `download_model` ② 匯入檔案同樣驗 SHA-256
-- 狀態：🚧 ｜ 相依：US-M1-19、US-M2-04 ｜ UI 完成，待 FFI（需模型清單、匯入）
+- 狀態：🚧 ｜ 相依：US-M1-19、US-M2-04 ｜ UI 接上 `list_models` / `download_model` / `import_model`（[0019](../changes/0019-swift-bindings.md)）；清單有 CI 測試，App 內下載與匯入待實機
 
 **US-M2-10** 身為使用者，我想要結果以 AX `kAXSelectedTextAttribute` 插入聚焦欄位，以便不經剪貼簿（FR-5、T6）。
 - 驗收：① 插入成功率記入手動清單 ② 失敗時進入 M2-11
@@ -257,7 +257,7 @@
 
 **US-M2-11** 身為使用者，我想要 AX 失敗時用剪貼簿貼上，且標記 Concealed / Transient 並在 300 ms 後還原，以便剪貼簿管理器看不到內容（T6）。
 - 驗收：① 備份並還原所有 pasteboard items ② 加上 `org.nspasteboard.ConcealedType`、`TransientType`
-- 狀態：🚧 ｜ 相依：US-M2-10 ｜ 實作與單元測試完成，待實機
+- 狀態：🚧 ｜ 相依：US-M2-10 ｜ 實作與單元測試（CI）完成；剪貼簿管理器實際行為待實機
 
 **US-M2-12** 身為使用 CJK 輸入法的使用者，我想要貼上前暫時切到 ASCII 輸入來源、完成後切回，以便 Cmd+V 不被輸入法吃掉（競品 shibing624/VoiceInput 經驗）。
 - 驗收：① 只在剪貼簿路徑啟用 ② 切回原輸入來源 ③ 注音、倉頡、日文輸入法手動驗證
@@ -269,11 +269,11 @@
 
 **US-M2-14** 身為使用者，我想要預算 UI（本月用量、估算金額、軟 / 硬上限、價目表編輯），以便控制花費（FR-6）。
 - 驗收：① 讀 `budget_status()` ② 達軟上限警告、硬上限提示已切到 raw
-- 狀態：🚧 ｜ 相依：US-M1-14 ｜ UI 完成，待 FFI
+- 狀態：✅ ｜ 相依：US-M1-14 ｜ 讀 `budget_status()`、軟 / 硬上限提示、價目表經 `save_settings` 寫入；`UniffiCoreTests` 在 CI 驗證預設上限與無效價格被拒（[0019](../changes/0019-swift-bindings.md)）
 
 **US-M2-15** 身為使用者，我想要設定預設模式、目標語言、詞彙表、模型，以便符合我的使用習慣（FR-4、FR-7、FR-8）。
 - 驗收：① 對應 mockup 設定頁 ② 寫入 M1-15 的設定檔
-- 狀態：🚧 ｜ 相依：US-M1-15 ｜ UI 完成，待 FFI（需讀寫 config）
+- 狀態：✅ ｜ 相依：US-M1-15 ｜ 新 FFI `get_settings` / `save_settings` 寫入 core 的 `config.json`（Swift 不另寫設定檔）；`UniffiCoreTests` 在 CI 驗證來回與重新載入（[0019](../changes/0019-swift-bindings.md)）
 
 **US-M2-16** 身為維護者，我想要跑完 §11 macOS 手動清單（瀏覽器、Electron、Office、終端機、斷網、key 失效、無 fn 外接鍵盤），以便達成 M2 DoD。
 - 驗收：① 結果記錄於 docs/changes ② 失敗項目開成新故事
@@ -345,11 +345,11 @@
 
 **US-M4a-01** 身為 iOS 使用者，我想要 onboarding 設定或略過 key、下載模型，以便第一次就能用（FR-1、`mobile.html` ob-key / ob-model）。
 - 驗收：① SecureField 送出即清空 ② 略過時只能用 raw
-- 狀態：🚧 ｜ 相依：US-M2-04、US-M2-05 ｜ UI 完成（SecureField 送出即清空、§12 建議可收合、略過只能 raw）；store_key 待 KeepsayKit 連結，見 [0017](../changes/0017-ios-app.md)
+- 狀態：🚧 ｜ 相依：US-M2-04、US-M2-05 ｜ UI 完成（SecureField 送出即清空、§12 v0.4 建議可收合、略過只能 raw）；`store_key` 經 KeepsayKit 連到 keepsay-core（`KitCoreService`，離開 main thread；CI 以連結 core 的 `LiveCoreTests` 驗證格式檢查）；簽章後實機寫入鑰匙圈待 §16-1，見 [0017](../changes/0017-ios-app.md)
 
 **US-M4a-02** 身為 iOS 使用者，我想要錄音 → STT → 潤稿 → 剪貼簿（localOnly、60 秒 expiration），以便貼到任何 App（FR-5、T6）。
 - 驗收：① `UIPasteboard` 設 localOnly 與 expirationDate ② 音訊只在記憶體（INV-5）
-- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 狀態機、`ClipboardPolicy`（`.localOnly`、`.expirationDate` 60 秒，XCTest）、記憶體錄音完成；STT / 潤稿待 core 連結
+- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 狀態機、`ClipboardPolicy`（`.localOnly`、`.expirationDate` 60 秒，XCTest）、記憶體錄音、STT / 潤稿經 KeepsayKit 連到 keepsay-core（ios-app.yml `build-test-core` 連結 XCFramework 建置 simulator 與 device）；實機端到端（模型下載、轉寫、潤稿）待實機
 
 **US-M4a-03** 身為 iOS 使用者，我想要「潤飾」與「潤飾並翻譯」兩個 App 內動作與兩個 App Intent，以便綁 Action Button 或捷徑（FR-2、FR-8）。
 - 驗收：① 兩個 Intent 皆可從捷徑執行 ② 失敗時退回 raw 並提示
@@ -361,7 +361,7 @@
 
 **US-M4a-05** 身為 iOS 使用者，我想要設定頁（模式、目標語言、詞彙表、預算），以便與桌面一致（FR-6、FR-7）。
 - 驗收：① 對應 `mobile.html` settings
-- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 設定頁完成（fingerprint、更換 / 刪除、模式、目標語言、詞彙表、預算、價目表、模型、隱私）；值改由 core config 提供待連結
+- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 設定頁完成（fingerprint、更換 / 刪除、模式、目標語言、詞彙表、預算、價目表、模型、隱私）、軟上限每月提醒一次；設定寫入 core 的 `config.json`（0019 `save_settings`），模型安裝狀態由 core 回報
 
 **US-M4a-06** 身為使用者，我想要 TestFlight 內測版，以便實機試用。
 - 驗收：① CI 上傳 ② 隱私標示為「不收集資料」

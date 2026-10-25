@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4B5E00000000000000000062 /* KeepsayKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4B5E00000000000000000061 /* KeepsayKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		4B5E00000000000000000020 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -39,6 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4B5E00000000000000000062 /* KeepsayKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +95,7 @@
 			);
 			name = KeepsayiOS;
 			packageProductDependencies = (
+				4B5E00000000000000000061 /* KeepsayKit */,
 			);
 			productName = KeepsayiOS;
 			productReference = 4B5E00000000000000000011 /* KeepsayiOS.app */;
@@ -147,6 +153,9 @@
 			);
 			mainGroup = 4B5E00000000000000000002;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4B5E00000000000000000060 /* XCLocalSwiftPackageReference "../KeepsayKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4B5E00000000000000000003 /* Products */;
 			projectDirPath = "";
@@ -385,6 +394,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		4B5E00000000000000000060 /* XCLocalSwiftPackageReference "../KeepsayKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../KeepsayKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4B5E00000000000000000061 /* KeepsayKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4B5E00000000000000000060 /* XCLocalSwiftPackageReference "../KeepsayKit" */;
+			productName = KeepsayKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4B5E00000000000000000001 /* Project object */;
 }

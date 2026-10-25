@@ -41,6 +41,25 @@ M4a 要做 iOS 主 App：錄音 → 本機 STT → 潤稿 → 剪貼簿，加上
   - 確認 `.localOnly` 的資料不會出現在 Universal Clipboard。
 - 已知限制：沒有 App icon（asset catalog 留到發佈前再加）。Shortcuts 片語只有繁中。
 
+## 補充：接上 KeepsayKit（2026-10-25）
+
+KeepsayKit（M2）與 core 的 UniFFI 介面（0014）合併後，iOS App 改為透過 KeepsayKit 使用 core：
+
+1. **連結方式**：`KeepsayiOS.xcodeproj` 以 `XCLocalSwiftPackageReference`（`../KeepsayKit`）連結 KeepsayKit，只連到 App target，測試 target 不另外連結（避免同一個 static library 在 host App 與測試 bundle 各有一份）。KeepsayKit 的 `Package.swift` 在 `Frameworks/KeepsayCoreFFI.xcframework` 與產生的 bindings 都存在時才連結 core，否則 `CoreBridge.make()` 回傳 `UnavailableCore`（只能用原文模式、不存任何東西）。原本 App 內的 `UnlinkedCore` 移除。
+2. **`KitCoreService`**：`CoreService` 的唯一實作，也是 App 內唯一 `import KeepsayKit` 的檔案（ios-app.yml 新增文字掃描）。KeepsayKit 與 App 有同名型別（`AppSettings`、`PolishOutcome`、`BudgetSnapshot`…），這個檔案一律寫 `KeepsayKit.` 前綴，其他檔案看不到 KeepsayKit 的型別。
+3. **一律離開 main thread**：core 的 FFI 都是阻塞呼叫（`has_key` 也要讀鑰匙圈屬性），所以 `CoreService` 改成全部 async，`KitCoreService` 每個呼叫都包在 `Task.detached`。`AppModel` 的狀態（有沒有 key、fingerprint、預算、已安裝模型）一次讀成 `CoreStatus`，在進入前景、key 變更、每次聽寫後更新。開始錄音時用最後一次的狀態決定計畫；core 每次呼叫都會再檢查 key 與硬上限，所以狀態過期也無法繞過。
+4. **錯誤對應**：core 的 `CoreFailure` 轉成不含內容的 `CoreServiceError` / `FallbackReason`；`VaultNotEntitled`（未簽章，-34018）顯示「無法寫入鑰匙圈（未簽章的開發版）」，不退回其他儲存方式。轉寫錯誤不再先檢查「模型已安裝」，改由 core 回報（`ModelUnknown` / `ModelHash` → 「尚未下載語音模型」）。
+5. **初始化**：data dir 由 KeepsayKit 的 `UniffiCore` 決定（App 容器內的 Application Support），App 不另外指定。設定變更時把非機密設定交給 core（`saveSettings`）。
+6. **其他**：軟上限每個月提醒一次（`SoftLimitNotice`，記在設定的 `softLimitWarnedMonth`，硬上限有自己的提示，不重複提醒）；§12 安全建議改為 v0.4 內容（專用的非預設 workspace、Billing → Spend limits；撤銷與自動儲值的 Console 位置尚未確認，所以不寫選單路徑）；onboarding 加步驟點；未連結 core 時設定頁顯示開發版提示。
+7. **測試**：`AppModelTests` 以假的 core 與錄音器測 key 流程（只看 fingerprint）、聽寫各路徑、翻譯沒有 key 時不呼叫 API、硬上限、Intent toggle、設定送到 core、軟上限只提醒一次；`KitCoreServiceUnlinkedTests` 測沒有 core 時的行為。
+
+### 合併 M2 的 bindings（0019）之後
+
+- M2 補上 `get_settings` / `save_settings` / `list_models`：`apply` 送出的設定（模式、目標語言、`stt_model`、詞彙表、價目表、上限）寫入 core 的 `config.json`，`transcribe` 因此用 App 選的模型；已安裝狀態改由 core 回報。data dir 為 App 容器內的 Application Support/`dev.rightson.keepsay`。
+- iOS 的 `settings.json` 仍保留 App 專屬欄位（`onboarded`、`softLimitWarnedMonth`），也保留一份同樣的非機密設定；啟動時與每次修改時都推給 core，iOS 上 App 是 config.json 唯一的寫入者。之後可改為啟動時從 core 讀回，只在 App 端保留 App 專屬欄位。
+- ios-app.yml 新增 `build-test-core` job：`KEEPSAY_CORE_PLATFORMS="ios-sim ios" apple/scripts/build-core.sh` → 連結 core 跑 XCTest（`KEEPSAY_EXPECT_CORE=1`，`LiveCoreTests` 不准略過）→ Release 建置 simulator 與 device，以 `nm` 確認有連結 core 的 `store_key`、沒有任何讀 key 的匯出，Info.plist 沒有 keychain 項目 → 上傳連結 core 的 simulator `.app`。原本不連結 core 的 `build-test` 保留。
+- `LiveCoreTests` 只測不需網路的路徑：狀態來自 core（fingerprint 為「…」加四碼）、格式不符的 key 被 core 擋下且已存的 key 不變、raw 不呼叫 API、manifest 以外的模型被拒。
+
 ## Status
 
-Accepted（M4a 進行中；core 連結待 KeepsayKit 與 m1-integration）
+Accepted（M4a 進行中；App 已連結 keepsay-core，TestFlight 與實機驗證待 §16 第 1 項）

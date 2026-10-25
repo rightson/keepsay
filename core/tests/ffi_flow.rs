@@ -114,6 +114,8 @@ fn ffi_lifecycle() {
         Some(CoreError::NotInitialized)
     );
     assert_eq!(ffi::budget_status().err(), Some(CoreError::NotInitialized));
+    assert_eq!(ffi::get_settings().err(), Some(CoreError::NotInitialized));
+    assert_eq!(ffi::list_models().err(), Some(CoreError::NotInitialized));
 
     // Linux has no platform vault: init reports it instead of faking one.
     #[cfg(not(any(target_vendor = "apple", target_os = "windows")))]
@@ -200,6 +202,46 @@ fn ffi_lifecycle() {
         ffi::download_model("no-such-model".into(), Arc::new(Counter::default())),
         Err(CoreError::ModelUnknown)
     );
+
+    // Settings: defaults before config.json exists, a validated round trip,
+    // invalid values refused, and a newer-schema file left untouched.
+    assert_eq!(ffi::get_settings().err(), None);
+    let defaults = ffi::get_settings().unwrap();
+    assert_eq!(defaults.mode, Mode::Polish);
+    assert_eq!(defaults.stt_model.as_deref(), Some("whisper-small"));
+    let edited = ffi::Settings {
+        mode: Mode::Formal,
+        translate_to: TargetLang::Ja,
+        glossary: vec!["keepsay".into(), "roadmap".into()],
+        hard_limit_usd: Some(3.0),
+        hotkey_polish: Some("Control+Option+Space".into()),
+        ..defaults.clone()
+    };
+    ffi::save_settings(edited.clone()).unwrap();
+    assert_eq!(ffi::get_settings().unwrap(), edited);
+    let invalid = ffi::Settings {
+        input_usd_per_mtok: f64::NAN,
+        ..edited.clone()
+    };
+    assert_eq!(ffi::save_settings(invalid), Err(CoreError::Config));
+    assert_eq!(ffi::get_settings().unwrap(), edited);
+    let config_path = dir.path().join("config.json");
+    let saved = std::fs::read(&config_path).unwrap();
+    std::fs::write(&config_path, br#"{"schema_version": 99}"#).unwrap();
+    assert_eq!(ffi::save_settings(edited), Err(CoreError::Config));
+    assert_eq!(
+        std::fs::read(&config_path).unwrap(),
+        br#"{"schema_version": 99}"#
+    );
+    std::fs::write(&config_path, saved).unwrap();
+
+    // Model list: the bundled manifest, installed = file present.
+    let list = ffi::list_models().unwrap();
+    assert!(list.iter().any(|m| m.id == "whisper-small" && m.size > 0));
+    assert!(list.iter().all(|m| !m.installed));
+    std::fs::write(models.join("whisper-base.bin"), b"x").unwrap();
+    let list = ffi::list_models().unwrap();
+    assert!(list.iter().any(|m| m.id == "whisper-base" && m.installed));
 
     // No request carried anything but the expected endpoints.
     for server in [&ok, &unauthorized] {
