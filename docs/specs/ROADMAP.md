@@ -467,12 +467,12 @@
 | D-4 | cargo-vet 要信任哪些組織的稽核 | US-M1-24 | ✅ 0011：選項 (a)，匯入 registry 的知名組織稽核，其餘一次性 exemption |
 | D-5 | V7 結論後是否引入 OpenCC | US-BL-05 | 🧑（待 M1-26） |
 | D-6 | Windows CredMan target 是否也改為 `dev.rightson.keepsay.*` 風格（§6.2 仍為 `keepsay/anthropic`） | US-M1-05 | ✅ 0005：`dev.rightson.keepsay/anthropic` |
-| D-7 | 翻譯守門門檻校正結果是否接受 | US-M1-12 | 🧑 待確認 [0007](../changes/0007-polish-prompts-and-guard.md) |
+| D-7 | 翻譯守門門檻校正結果是否接受 | US-M1-12 | ✅ 已接受（[0018](../changes/0018-approvals-2026-10-25.md)） |
 | D-8 | push-to-talk 是否從 v1.1 提前到 M2 / M3 | US-BL-01、FR-2 | 🧑 |
-| D-9 | light / formal 模式的 prompt 內容（§6.5 未定義） | US-M1-09 | 🧑 草稿見 [0007](../changes/0007-polish-prompts-and-guard.md) |
+| D-9 | light / formal 模式的 prompt 內容（§6.5 未定義） | US-M1-09 | ✅ 已接受（[0018](../changes/0018-approvals-2026-10-25.md)） |
 | D-10 | uniffi 授權為 MPL-2.0，不在 deny.toml 允許清單：是否加逐 crate 例外，或改用其他 FFI 方式 | US-M1-22、M2、M4a | ✅ [0012](../changes/0012-ring-and-uniffi.md)：6 個 uniffi crate 逐 crate 例外 |
 | D-11 | 是否批准 `uniffi/tokio` feature，讓 `polish`、`store_key`、`verify_key`、`download_model` 成為真正的 async 匯出（目前為阻塞 + 每次呼叫一個 current-thread runtime） | US-M1-22、M2-04 | 🧑 見 [0014](../changes/0014-m1-integration.md) |
-| D-12 | M2 的 Swift binding 產生器：`uniffi` 的 `cli` feature（workspace 內 bin crate，或 workspace 外 `cargo install`），以及 core 加 `staticlib` / `cdylib` crate-type 或改由薄 FFI crate 承擔 | US-M2-04 | 🧑 見 [0014](../changes/0014-m1-integration.md) |
+| D-12 | M2 的 Swift binding 產生器：`uniffi` 的 `cli` feature（workspace 內 bin crate，或 workspace 外 `cargo install`），以及 core 加 `staticlib` / `cdylib` crate-type 或改由薄 FFI crate 承擔 | US-M2-04 | ✅ 已批准（[0018](../changes/0018-approvals-2026-10-25.md)） |
 
 §16 人工事項：
 
