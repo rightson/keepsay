@@ -20,10 +20,12 @@ let hasCore =
     && FileManager.default.fileExists(atPath: "\(packageDir)/\(bindingsDir)/keepsay_core.swift")
 
 var kitDependencies: [Target.Dependency] = []
+var testDependencies: [Target.Dependency] = ["KeepsayKit"]
 var targets: [Target] = []
 
 if hasCore {
     kitDependencies.append("KeepsayCoreBindings")
+    testDependencies.append("KeepsayCoreBindings")
     targets += [
         .binaryTarget(name: "KeepsayCoreFFI", path: xcframeworkPath),
         .target(
@@ -35,8 +37,12 @@ if hasCore {
                 .linkedFramework("Security"),
                 .linkedFramework("CoreFoundation"),
                 .linkedFramework("SystemConfiguration"),
-                // whisper.cpp (C++ runtime, BLAS).
+                // whisper.cpp: C++ runtime, BLAS, Metal backend (the
+                // staticlib does not carry whisper-rs-sys's link directives).
                 .linkedFramework("Accelerate"),
+                .linkedFramework("Foundation"),
+                .linkedFramework("Metal"),
+                .linkedFramework("MetalKit"),
                 .linkedLibrary("c++"),
             ]
         ),
@@ -45,7 +51,7 @@ if hasCore {
 
 targets += [
     .target(name: "KeepsayKit", dependencies: kitDependencies, path: "Sources/KeepsayKit"),
-    .testTarget(name: "KeepsayKitTests", dependencies: ["KeepsayKit"], path: "Tests/KeepsayKitTests"),
+    .testTarget(name: "KeepsayKitTests", dependencies: testDependencies, path: "Tests/KeepsayKitTests"),
 ]
 
 let package = Package(

@@ -8,6 +8,12 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+[lib]
+# `staticlib` is what apple/scripts/build-core.sh packages into
+# KeepsayCoreFFI.xcframework (docs/changes/0018 D-12, 0019); the Swift
+# bindings are generated from the same static library, so no cdylib.
+crate-type = ["lib", "staticlib"]
+
 [features]
 default = []
 # Allows overriding the API base URL for tests (wiremock). Refused at compile

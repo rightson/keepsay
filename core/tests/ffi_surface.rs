@@ -22,7 +22,40 @@ const EXPECTED: &[(&str, &str)] = &[
     ("budget_status", "Result<BudgetStatus, CoreError>"),
     ("download_model", "Result<(), CoreError>"),
     ("import_model", "Result<(), CoreError>"),
+    // Non-secret config.json fields (docs/changes/0019); no key, no proxy.
+    ("get_settings", "Result<Settings, CoreError>"),
+    ("save_settings", "Result<(), CoreError>"),
+    ("list_models", "Result<Vec<ModelStatus>, CoreError>"),
 ];
+
+/// The fields of the `Settings` record are pinned: it must not grow one
+/// that could carry the key, or the proxy URL (which may embed credentials).
+#[test]
+fn settings_record_fields_are_pinned() {
+    let code = code();
+    let start = code.find("pub struct Settings {").expect("Settings record");
+    let body = &code[start..start + code[start..].find('}').expect("end")];
+    let fields: Vec<&str> = body
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("pub "))
+        .filter_map(|l| l.split_once(':').map(|(n, _)| n))
+        .collect();
+    assert_eq!(
+        fields,
+        [
+            "mode",
+            "translate_to",
+            "stt_model",
+            "glossary",
+            "input_usd_per_mtok",
+            "output_usd_per_mtok",
+            "soft_limit_usd",
+            "hard_limit_usd",
+            "hotkey_polish",
+            "hotkey_polish_translate",
+        ]
+    );
+}
 
 /// Return types allowed for anything about the key.
 const KEY_RETURNS: &[&str] = &[
