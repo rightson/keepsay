@@ -221,59 +221,59 @@
 
 **US-M2-02** 身為維護者，我想要實測 V9 的 active CGEventTap 方案（🌐 鍵行為、AZERTY keycode、Secure Input、與 sandbox 的交互），以便確認 0004 的決定可行。
 - 驗收：① §15 V9 列出的四項實測結果回填 ② 若不可行，改以 Carbon 組合為預設並記錄於 docs/changes
-- 狀態：⬜ ｜ 相依：US-M0-10
+- 狀態：🚧 ｜ 相依：US-M0-10 ｜ tap 已實作（[0015](../changes/0015-macos-app.md)），四項實測待實機
 
 **US-M2-03** 身為維護者，我想要完成 V2 spike（sandbox 下 AX 插入與 CGEvent 貼上），以便決定 entitlements。
 - 驗收：① §15 V2 回填 ② 開 sandbox 時只開 network.client、audio-input；關閉時在 SECURITY.md 說明原因 ③ Hardened Runtime 開啟
-- 狀態：⬜ ｜ 相依：—
+- 狀態：🚧 ｜ 相依：— ｜ Hardened Runtime 已開；sandbox 暫不開，V2 待實機（[0015](../changes/0015-macos-app.md)）
 
 **US-M2-04** 身為貢獻者，我想要 Xcode 專案與 KeepsayKit 透過 UniFFI 連結 core，以便 macOS 與 iOS 共用同一份 Swift 綁定。
 - 驗收：① §5.2 的 apple/ 結構 ② 無第三方 Swift 套件（§9）③ bundle id `dev.rightson.keepsay.*`
-- 狀態：⬜ ｜ 相依：US-M1-22
+- 狀態：🚧 ｜ 相依：US-M1-22 ｜ SwiftPM + build-core.sh XCFramework 完成（[0015](../changes/0015-macos-app.md)）；待 FFI 匯出後接上 `UniffiCore`
 
 **US-M2-05** 身為使用者，我想要在 SecureField 輸入 key、看到末四碼、可更換與刪除，並看到 §12 的安全引導，以便安心設定 key（FR-1）。
 - 驗收：① 送出後立即 `store_key` 並清空欄位（INV-2）② 沒有顯示或複製 key 的功能 ③ onboarding 顯示 §12 四步驟
-- 狀態：⬜ ｜ 相依：US-M2-04、US-M1-01
+- 狀態：🚧 ｜ 相依：US-M2-04、US-M1-01 ｜ UI 完成，待 FFI
 
 **US-M2-06** 身為使用者，我想要用 fn+Z / fn+Shift+Z 開始與結束錄音，以便單手觸發潤飾或翻譯（FR-2）。
 - 驗收：① active tap 隔離在單一檔案，回呼只讀 Z keycode 與 fn / Shift 旗標、不保存任何按鍵（T7）② 有自動檢查限制該檔案的事件處理範圍（THREAT_MODEL T7 待補）③ toggle 語意與 Esc 取消
-- 狀態：⬜ ｜ 相依：US-M2-02
+- 狀態：🚧 ｜ 相依：US-M2-02 ｜ 實作與 `check-fn-tap.sh` CI 檢查完成，待實機
 
 **US-M2-07** 身為沒有 fn 鍵或不授予輔助使用權限的使用者，我想要 Carbon 備援組合 ⌥Space / ⌥⇧Space 與改鍵 UI，以便仍能使用快捷鍵（FR-2）。
 - 驗收：① 註冊失敗時提示改鍵 ② 設定中可錄製新快捷鍵
-- 狀態：⬜ ｜ 相依：US-M2-04
+- 狀態：🚧 ｜ 相依：US-M2-04 ｜ Carbon 備援、錄製 UI 完成，待實機
 
 **US-M2-08** 身為使用者，我想要 AVAudioEngine 錄音轉 16 kHz mono f32 只存在記憶體，以便音訊不落地（INV-5）。
 - 驗收：① 不使用任何檔案型錄音 API ② 錄音結束即釋放 buffer
-- 狀態：⬜ ｜ 相依：US-M2-04
+- 狀態：🚧 ｜ 相依：US-M2-04 ｜ `PCMRecorder` 完成，待實機
 
 **US-M2-09** 身為使用者，我想要在 App 內下載或手動匯入模型並看到進度，以便離線辨識（FR-3、INV-7）。
 - 驗收：① 只呼叫 `download_model` ② 匯入檔案同樣驗 SHA-256
-- 狀態：⬜ ｜ 相依：US-M1-19、US-M2-04
+- 狀態：🚧 ｜ 相依：US-M1-19、US-M2-04 ｜ UI 完成，待 FFI（需模型清單、匯入）
 
 **US-M2-10** 身為使用者，我想要結果以 AX `kAXSelectedTextAttribute` 插入聚焦欄位，以便不經剪貼簿（FR-5、T6）。
 - 驗收：① 插入成功率記入手動清單 ② 失敗時進入 M2-11
-- 狀態：⬜ ｜ 相依：US-M2-03
+- 狀態：🚧 ｜ 相依：US-M2-03 ｜ 實作完成，相容性待手動清單
 
 **US-M2-11** 身為使用者，我想要 AX 失敗時用剪貼簿貼上，且標記 Concealed / Transient 並在 300 ms 後還原，以便剪貼簿管理器看不到內容（T6）。
 - 驗收：① 備份並還原所有 pasteboard items ② 加上 `org.nspasteboard.ConcealedType`、`TransientType`
-- 狀態：⬜ ｜ 相依：US-M2-10
+- 狀態：🚧 ｜ 相依：US-M2-10 ｜ 實作與單元測試完成，待實機
 
 **US-M2-12** 身為使用 CJK 輸入法的使用者，我想要貼上前暫時切到 ASCII 輸入來源、完成後切回，以便 Cmd+V 不被輸入法吃掉（競品 shibing624/VoiceInput 經驗）。
 - 驗收：① 只在剪貼簿路徑啟用 ② 切回原輸入來源 ③ 注音、倉頡、日文輸入法手動驗證
-- 狀態：⬜ ｜ 相依：US-M2-11
+- 狀態：🚧 ｜ 相依：US-M2-11 ｜ 實作完成，輸入法待手動驗證
 
 **US-M2-13** 身為使用者，我想要錄音、處理、完成、退回 raw 的 HUD 與提示，以便知道結果是否經過潤稿或翻譯（FR-4、FR-8）。
 - 驗收：① 對應 `desktop.html` HUD 狀態 ② 顯示 fallback 原因（含「翻譯需要 API，已輸出原文」）
-- 狀態：⬜ ｜ 相依：US-M2-06、US-M1-13
+- 狀態：🚧 ｜ 相依：US-M2-06、US-M1-13 ｜ 浮條與狀態機（含測試）完成
 
 **US-M2-14** 身為使用者，我想要預算 UI（本月用量、估算金額、軟 / 硬上限、價目表編輯），以便控制花費（FR-6）。
 - 驗收：① 讀 `budget_status()` ② 達軟上限警告、硬上限提示已切到 raw
-- 狀態：⬜ ｜ 相依：US-M1-14
+- 狀態：🚧 ｜ 相依：US-M1-14 ｜ UI 完成，待 FFI
 
 **US-M2-15** 身為使用者，我想要設定預設模式、目標語言、詞彙表、模型，以便符合我的使用習慣（FR-4、FR-7、FR-8）。
 - 驗收：① 對應 mockup 設定頁 ② 寫入 M1-15 的設定檔
-- 狀態：⬜ ｜ 相依：US-M1-15
+- 狀態：🚧 ｜ 相依：US-M1-15 ｜ UI 完成，待 FFI（需讀寫 config）
 
 **US-M2-16** 身為維護者，我想要跑完 §11 macOS 手動清單（瀏覽器、Electron、Office、終端機、斷網、key 失效、無 fn 外接鍵盤），以便達成 M2 DoD。
 - 驗收：① 結果記錄於 docs/changes ② 失敗項目開成新故事
@@ -345,27 +345,27 @@
 
 **US-M4a-01** 身為 iOS 使用者，我想要 onboarding 設定或略過 key、下載模型，以便第一次就能用（FR-1、`mobile.html` ob-key / ob-model）。
 - 驗收：① SecureField 送出即清空 ② 略過時只能用 raw
-- 狀態：⬜ ｜ 相依：US-M2-04、US-M2-05
+- 狀態：🚧 ｜ 相依：US-M2-04、US-M2-05 ｜ UI 完成（SecureField 送出即清空、§12 建議可收合、略過只能 raw）；store_key 待 KeepsayKit 連結，見 [0017](../changes/0017-ios-app.md)
 
 **US-M4a-02** 身為 iOS 使用者，我想要錄音 → STT → 潤稿 → 剪貼簿（localOnly、60 秒 expiration），以便貼到任何 App（FR-5、T6）。
 - 驗收：① `UIPasteboard` 設 localOnly 與 expirationDate ② 音訊只在記憶體（INV-5）
-- 狀態：⬜ ｜ 相依：US-M4a-01
+- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 狀態機、`ClipboardPolicy`（`.localOnly`、`.expirationDate` 60 秒，XCTest）、記憶體錄音完成；STT / 潤稿待 core 連結
 
 **US-M4a-03** 身為 iOS 使用者，我想要「潤飾」與「潤飾並翻譯」兩個 App 內動作與兩個 App Intent，以便綁 Action Button 或捷徑（FR-2、FR-8）。
 - 驗收：① 兩個 Intent 皆可從捷徑執行 ② 失敗時退回 raw 並提示
-- 狀態：⬜ ｜ 相依：US-M4a-02
+- 狀態：🚧 ｜ 相依：US-M4a-02 ｜ `PolishDictationIntent`、`PolishAndTranslateDictationIntent` 與 AppShortcutsProvider 完成（toggle、開啟 App）；捷徑實機執行待驗
 
 **US-M4a-04** 身為 iOS 使用者，我想要在記憶體受限下仍能載入模型，以便舊機型可用。
 - 驗收：① 依裝置推薦模型 ② 實測記憶體峰值記入 docs/changes
-- 狀態：⬜ ｜ 相依：US-M1-17、US-M2-01
+- 狀態：🚧 ｜ 相依：US-M1-17、US-M2-01 ｜ ① 依實體記憶體推薦 base / small / large-v3-turbo（XCTest）；② 實測待實機
 
 **US-M4a-05** 身為 iOS 使用者，我想要設定頁（模式、目標語言、詞彙表、預算），以便與桌面一致（FR-6、FR-7）。
 - 驗收：① 對應 `mobile.html` settings
-- 狀態：⬜ ｜ 相依：US-M4a-01
+- 狀態：🚧 ｜ 相依：US-M4a-01 ｜ 設定頁完成（fingerprint、更換 / 刪除、模式、目標語言、詞彙表、預算、價目表、模型、隱私）；值改由 core config 提供待連結
 
 **US-M4a-06** 身為使用者，我想要 TestFlight 內測版，以便實機試用。
 - 驗收：① CI 上傳 ② 隱私標示為「不收集資料」
-- 狀態：⬜ 🧑 ｜ 相依：§16-1、US-M0-10
+- 狀態：⬜ 🧑 ｜ 相依：§16-1、US-M0-10 ｜ `ios-app.yml` 產出 simulator `.app` artifact；TestFlight job 為 `if: false` 佔位
 
 ---
 
@@ -467,12 +467,12 @@
 | D-4 | cargo-vet 要信任哪些組織的稽核 | US-M1-24 | ✅ 0011：選項 (a)，匯入 registry 的知名組織稽核，其餘一次性 exemption |
 | D-5 | V7 結論後是否引入 OpenCC | US-BL-05 | 🧑（待 M1-26） |
 | D-6 | Windows CredMan target 是否也改為 `dev.rightson.keepsay.*` 風格（§6.2 仍為 `keepsay/anthropic`） | US-M1-05 | ✅ 0005：`dev.rightson.keepsay/anthropic` |
-| D-7 | 翻譯守門門檻校正結果是否接受 | US-M1-12 | 🧑 待確認 [0007](../changes/0007-polish-prompts-and-guard.md) |
+| D-7 | 翻譯守門門檻校正結果是否接受 | US-M1-12 | ✅ 已接受（[0018](../changes/0018-approvals-2026-10-25.md)） |
 | D-8 | push-to-talk 是否從 v1.1 提前到 M2 / M3 | US-BL-01、FR-2 | 🧑 |
-| D-9 | light / formal 模式的 prompt 內容（§6.5 未定義） | US-M1-09 | 🧑 草稿見 [0007](../changes/0007-polish-prompts-and-guard.md) |
+| D-9 | light / formal 模式的 prompt 內容（§6.5 未定義） | US-M1-09 | ✅ 已接受（[0018](../changes/0018-approvals-2026-10-25.md)） |
 | D-10 | uniffi 授權為 MPL-2.0，不在 deny.toml 允許清單：是否加逐 crate 例外，或改用其他 FFI 方式 | US-M1-22、M2、M4a | ✅ [0012](../changes/0012-ring-and-uniffi.md)：6 個 uniffi crate 逐 crate 例外 |
 | D-11 | 是否批准 `uniffi/tokio` feature，讓 `polish`、`store_key`、`verify_key`、`download_model` 成為真正的 async 匯出（目前為阻塞 + 每次呼叫一個 current-thread runtime） | US-M1-22、M2-04 | 🧑 見 [0014](../changes/0014-m1-integration.md) |
-| D-12 | M2 的 Swift binding 產生器：`uniffi` 的 `cli` feature（workspace 內 bin crate，或 workspace 外 `cargo install`），以及 core 加 `staticlib` / `cdylib` crate-type 或改由薄 FFI crate 承擔 | US-M2-04 | 🧑 見 [0014](../changes/0014-m1-integration.md) |
+| D-12 | M2 的 Swift binding 產生器：`uniffi` 的 `cli` feature（workspace 內 bin crate，或 workspace 外 `cargo install`），以及 core 加 `staticlib` / `cdylib` crate-type 或改由薄 FFI crate 承擔 | US-M2-04 | ✅ 已批准（[0018](../changes/0018-approvals-2026-10-25.md)） |
 
 §16 人工事項：
 
