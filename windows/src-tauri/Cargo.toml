@@ -1,0 +1,68 @@
+[package]
+name = "keepsay-windows"
+description = "keepsay for Windows: Tauri 2 tray app over keepsay-core (M3)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "keepsay"
+path = "src/main.rs"
+
+[features]
+# Local STT is the app's whole input path, so whisper is on by default.
+# `--no-default-features` builds without whisper.cpp (no cmake/clang).
+default = ["whisper"]
+whisper = ["keepsay-core/whisper"]
+
+[dependencies]
+keepsay-core = { path = "../../core" }
+secrecy = "0.10.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tokio = { version = "1.54.1", default-features = false, features = ["rt", "macros", "time"] }
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "std"] }
+zeroize = "1.9.1"
+
+# The app itself only exists on Windows (docs/changes/0016). Elsewhere the
+# crate builds as a stub so the workspace CI on Linux needs no WebKitGTK and
+# the pure logic (hotkeys, session, audio, IPC allowlist) is still tested.
+[target.'cfg(windows)'.dependencies]
+# PROPOSAL §14 whitelist. Default features off (docs/changes/0016):
+# - wry: the WebView2 runtime; tray-icon: the tray.
+# - custom-protocol: always serve the embedded ui/ (never a dev server URL).
+# - common-controls-v6: themed native menus.
+# Not enabled: compression, dynamic-acl, devtools, isolation, protocol-asset,
+# image-*, rustls-tls / native-tls (tauri's own HTTP client), x11, dbus.
+tauri = { version = "2.12.5", default-features = false, features = ["wry", "tray-icon", "custom-protocol", "common-controls-v6"] }
+# RegisterHotKey under the hood (V8 option (c), docs/changes/0004).
+tauri-plugin-global-shortcut = { version = "2.4.1", default-features = false }
+# §14: Windows only. WASAPI capture to memory (INV-5).
+cpal = { version = "0.18.2", default-features = false }
+# §14: Windows only, minimal features. Used only by src/win32/ (the one
+# directory allowed `unsafe`, docs/changes/0018): native key dialog (V5),
+# SendInput and the clipboard fallback. Same version as keepsay-core's.
+windows = { version = "0.62.2", default-features = false, features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_System_DataExchange",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_UI_Controls",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[build-dependencies]
+# Part of tauri 2 (§14): compiles capabilities/ACL and the Windows resource.
+# Unconditional because build scripts see the host's cfg: this way a Windows
+# target can also be checked from a Linux host. build.rs only calls it when
+# the target is Windows.
+tauri-build = { version = "2.7.4", default-features = false }
+
+[lints]
+workspace = true
